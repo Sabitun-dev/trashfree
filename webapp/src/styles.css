@@ -23,6 +23,7 @@
   --c-violet-soft: 237 233 254;
   --c-mute: 82 82 91;
   --c-mute-soft: 228 228 231;
+  --c-chart: 21 128 61;
   --safe-bottom: max(env(safe-area-inset-bottom), var(--tg-safe-area-inset-bottom, 0px));
   color-scheme: light;
 }
@@ -47,6 +48,7 @@
   --c-violet-soft: 46 16 101;
   --c-mute: 180 180 190;
   --c-mute-soft: 50 50 56;
+  --c-chart: 22 163 74;
   color-scheme: dark;
 }
 

@@ -4,7 +4,6 @@ import type { DictKey } from "../i18n/uz";
 import type { Mode } from "../lib/session";
 import { Notifications } from "./common/Notifications";
 import { Profile } from "./common/Profile";
-import { Soon } from "./common/Soon";
 import { Addresses } from "./customer/Addresses";
 import { Home } from "./customer/Home";
 import { NewOrder } from "./customer/NewOrder";
@@ -18,6 +17,9 @@ const CourierList = lazy(() => courier().then((m) => ({ default: m.CourierList }
 const CourierMap = lazy(() => courier().then((m) => ({ default: m.CourierMap })));
 const CourierToday = lazy(() => courier().then((m) => ({ default: m.CourierToday })));
 const CourierOrderScreen = lazy(() => courier().then((m) => ({ default: m.CourierOrderScreen })));
+
+const admin = () => import("./admin");
+const A = (name: keyof Awaited<ReturnType<typeof admin>>) => lazy(() => admin().then((m) => ({ default: m[name] as ComponentType<any> })));
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const SCREENS: Record<string, ComponentType<any>> = {
@@ -35,11 +37,19 @@ export const SCREENS: Record<string, ComponentType<any>> = {
   c_order: CourierOrderScreen,
   c_map: CourierMap,
   c_today: CourierToday,
-  a_dash: Soon,
-  a_orders: Soon,
-  a_people: Soon,
-  a_catalog: Soon,
-  a_more: Soon,
+  a_dash: A("AdminDashboard"),
+  a_orders: A("AdminOrders"),
+  a_order: A("AdminOrder"),
+  a_people: A("AdminPeople"),
+  a_person: A("AdminPerson"),
+  a_catalog: A("AdminCatalog"),
+  a_entities: A("AdminEntities"),
+  a_prices: A("AdminPrices"),
+  a_more: A("AdminMore"),
+  a_broadcast: A("AdminBroadcast"),
+  a_cash: A("AdminCash"),
+  a_audit: A("AdminAudit"),
+  a_settings: A("AdminSettings"),
 };
 
 export const TAB_ROOTS: Record<Mode, { name: string; label: DictKey; icon: string }[]> = {

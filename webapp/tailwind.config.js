@@ -28,6 +28,7 @@ export default {
         "violet-soft": v("violet-soft"),
         mute: v("mute"),
         "mute-soft": v("mute-soft"),
+        chart: v("chart"),
       },
       fontSize: { body: ["17px", "24px"], title: ["24px", "30px"], hero: ["28px", "34px"] },
       borderRadius: { card: "16px" },
