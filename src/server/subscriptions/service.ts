@@ -5,7 +5,7 @@ import { db, type Tx } from "../db";
 export async function activeSubscription(userId: number, tx?: Tx) {
   const now = new Date();
   return (tx ?? db()).subscription.findFirst({
-    where: { userId, status: "active", periodEnd: { gt: now } },
+    where: { userId, status: "active", periodEnd: { gt: now }, periodStart: { lte: now } },
     orderBy: { periodEnd: "desc" },
     include: { plan: true },
   });
@@ -33,7 +33,7 @@ export function serializeSubscription(s: SubWithPlan) {
 export async function consumePickupTx(tx: Tx, subscriptionId: number): Promise<boolean> {
   const n = await tx.$executeRaw`
     UPDATE "Subscription" SET "pickupsUsed" = "pickupsUsed" + 1
-    WHERE id = ${subscriptionId} AND status = 'active' AND "periodEnd" > now() AND "pickupsUsed" < "pickupsTotal"`;
+    WHERE id = ${subscriptionId} AND status = 'active' AND "periodStart" <= now() AND "periodEnd" > now() AND "pickupsUsed" < "pickupsTotal"`;
   return n === 1;
 }
 
