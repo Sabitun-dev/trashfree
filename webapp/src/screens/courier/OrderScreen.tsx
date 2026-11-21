@@ -1,4 +1,5 @@
 // Courier order card: big address, distance, slot, details, photo, money, call, directions, actions.
+import { CallButton } from "../../components/CallButton";
 import { useState } from "react";
 import { formatSlot } from "@domain/time";
 import { errorText, useT } from "../../i18n";
@@ -73,9 +74,7 @@ export function CourierOrderScreen({ id }: { id: string }) {
 
       <div className="mt-4 flex items-stretch gap-2">
         {o.customer?.phone ? (
-          <Button size="xl" variant="outline" icon="phone" className="flex-1" onClick={() => openLink(`tel:${o.customer!.phone}`)} aria-label={phoneDisplay(o.customer.phone)}>
-            {t("call")}
-          </Button>
+          <CallButton phone={o.customer.phone} label={t("call")} className="flex-1" />
         ) : (
           <div className="flex flex-1 items-center gap-2 rounded-2xl bg-line/50 px-3 text-[14px] leading-5 text-hint">
             <Icon name="phone" size={18} /> {t("c_phone_after")}

@@ -162,28 +162,38 @@ export function confirmDialog(msg: string): Promise<boolean> {
   return Promise.resolve(window.confirm(msg));
 }
 
-/** Current position: Telegram LocationManager (8.0+) first, then the browser. */
+/**
+ * Current position. Inside Telegram (8.0+) only Telegram's LocationManager is used: it shows Telegram's own
+ * permission prompt. The browser's geolocation inside Telegram's webview can hang without ever asking,
+ * so it is used only outside Telegram or on old clients — always with a time limit.
+ */
 export function getLocation(): Promise<{ lat: number; lng: number } | null> {
   const w = wa();
+  const withLimit = <T,>(p: Promise<T | null>, ms: number) => Promise.race([p, new Promise<null>((r) => setTimeout(() => r(null), ms))]);
   const browser = () =>
     new Promise<{ lat: number; lng: number } | null>((res) => {
       if (!navigator.geolocation) return res(null);
       navigator.geolocation.getCurrentPosition(
         (p) => res({ lat: p.coords.latitude, lng: p.coords.longitude }),
         () => res(null),
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 },
+        { enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 },
       );
     });
   const lm = w?.LocationManager;
   if (w && lm && atLeast("8.0")) {
-    return new Promise((res) => {
+    const viaTelegram = new Promise<{ lat: number; lng: number } | null>((res) => {
       const go = () => {
-        if (!lm.isLocationAvailable) return browser().then(res);
-        lm.getLocation((d) => (d ? res({ lat: d.latitude, lng: d.longitude }) : browser().then(res)));
+        if (!lm.isLocationAvailable) return res(null);
+        lm.getLocation((d) => res(d ? { lat: d.latitude, lng: d.longitude } : null));
       };
       if (lm.isInited) go();
       else lm.init(go);
     });
+    // Generous limit: the person may still be reading Telegram's permission prompt.
+    return withLimit(viaTelegram, 20000);
   }
-  return browser();
+  return withLimit(browser(), 9000);
 }
+
+/** Has this user allowed the bot to message them? (From Telegram's launch data.) */
+export const writeAccessKnown = () => !!wa()?.initDataUnsafe.user?.allows_write_to_pm;

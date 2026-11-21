@@ -65,6 +65,7 @@ function Wizard({ step }: { step: number }) {
 function StepWhere({ draft }: { draft: Draft }) {
   const t = useT();
   const nav = useNav();
+  const toast = useToast();
   const { catalog } = useSession();
   const addresses = useQuery<AddressDTO[]>("addresses", () => api.get("/addresses"));
   const [fly, setFly] = useState<{ lat: number; lng: number; at: number } | null>(null);
@@ -74,17 +75,17 @@ function StepWhere({ draft }: { draft: Draft }) {
   const city0 = catalog.cities[0];
   const initial = useRef(draft.lat && draft.lng ? { lat: draft.lat, lng: draft.lng } : city0 ? { lat: city0.centerLat, lng: city0.centerLng } : { lat: 41.3111, lng: 69.2797 });
 
-  // First visit: jump to my location (or the last saved address).
+  // First visit: jump to the last saved address, or ask for my location — once, after addresses have loaded.
+  const started = useRef(false);
+  const addressesReady = addresses.data !== undefined || !!addresses.error;
   useEffect(() => {
-    if (draft.lat) return;
+    if (draft.lat || started.current || !addressesReady) return;
+    started.current = true;
     const saved = addresses.data?.[0];
-    if (saved) {
-      pickSaved(saved);
-      return;
-    }
-    void locate();
+    if (saved) pickSaved(saved);
+    else void locate(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [addresses.data]);
+  }, [addressesReady]);
 
   async function reverse(lat: number, lng: number) {
     const seq = ++geoSeq.current;
@@ -106,11 +107,13 @@ function StepWhere({ draft }: { draft: Draft }) {
     if (!fromSaved) void reverse(p.lat, p.lng);
   }
 
-  async function locate() {
+  async function locate(manual = true) {
+    if (locating) return;
     setLocating(true);
     const p = await getLocation();
     setLocating(false);
     if (p) setFly({ ...p, at: Date.now() });
+    else if (manual) toast(t("err_location"), "info");
   }
 
   function pickSaved(a: AddressDTO) {
@@ -146,7 +149,7 @@ function StepWhere({ draft }: { draft: Draft }) {
       <div className="relative">
         <MapPicker center={initial.current} onMove={onMove} flyTo={fly} />
         <button
-          onClick={locate}
+          onClick={() => locate(true)}
           className="card-hc absolute bottom-3 right-3 z-[600] flex min-h-tap items-center gap-2 rounded-full bg-card px-4 text-[15px] font-semibold text-accent-ink shadow-lg active:scale-95"
         >
           {locating ? <span className="h-5 w-5 animate-spin rounded-full border-2 border-current border-r-transparent" /> : <Icon name="locate" size={20} />}

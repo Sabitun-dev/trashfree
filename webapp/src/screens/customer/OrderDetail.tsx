@@ -1,4 +1,5 @@
 // Order detail: tracker, payment state, courier + call, photos, map, details, timeline, cancel, rating, repeat.
+import { CallButton } from "../../components/CallButton";
 import { useEffect, useRef, useState } from "react";
 import { ONLINE_METHODS } from "@domain/types";
 import { formatSlot } from "@domain/time";
@@ -167,9 +168,7 @@ export function OrderDetail({ id }: { id: string }) {
             <p className="line-clamp-2 break-words font-semibold leading-5">{o.courier.name}</p>
           </div>
           {o.courier.phone && o.status !== "completed" && (
-            <Button size="md" icon="phone" onClick={() => openLink(`tel:${o.courier!.phone}`)} aria-label={phoneDisplay(o.courier.phone)}>
-              {t("call")}
-            </Button>
+            <CallButton phone={o.courier.phone} label={t("call")} size="md" className="shrink-0" />
           )}
         </Card>
       )}

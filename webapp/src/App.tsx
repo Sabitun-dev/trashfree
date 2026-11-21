@@ -6,7 +6,7 @@ import { api, ApiError } from "./lib/api";
 import { useNav, RouterProvider, type Route } from "./lib/router";
 import { SessionProvider, availableModes, useSession, type Mode } from "./lib/session";
 import { applyTheme } from "./lib/theme";
-import { inTelegram, openTelegramLink, wa } from "./lib/tg";
+import { inTelegram, openTelegramLink, requestWriteAccess, wa, writeAccessKnown } from "./lib/tg";
 import type { Bootstrap, Me } from "./lib/types";
 import { Button, SkeletonList } from "./ui/kit";
 import { CenterScreen, OfflineBanner, TabBar, type Tab } from "./ui/layout";
@@ -135,6 +135,22 @@ function Shell() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const [introDone, setIntroDone] = useState(false);
+
+  // Ask once for permission to send bot messages (order updates, new orders for couriers).
+  // Without it Telegram does not let the bot write first to people who opened the app from a link.
+  useEffect(() => {
+    if (!inTelegram()) return;
+    const report = () => api.post("/me/write-access").then(() => s.setMe({ ...s.me, botReachable: true })).catch(() => {});
+    if (writeAccessKnown()) {
+      if (!s.me.botReachable) void report();
+      return;
+    }
+    void requestWriteAccess().then((ok) => {
+      if (ok) void report();
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   if (!ready) return null;
 
   const mode = s.mode;

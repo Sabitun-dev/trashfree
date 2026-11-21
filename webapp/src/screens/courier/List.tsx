@@ -6,7 +6,10 @@ import { MainButton } from "../../lib/buttons";
 import { useQuery } from "../../lib/query";
 import { useNav } from "../../lib/router";
 import { useSession } from "../../lib/session";
+import { openTelegramLink } from "../../lib/tg";
 import type { OrderDTO } from "../../lib/types";
+import { Icon } from "../../ui/Icon";
+import { supportLink } from "../common/Profile";
 import { Button, EmptyState, ErrorState, IconButton, Segmented, SkeletonList } from "../../ui/kit";
 import { Page } from "../../ui/layout";
 import { Celebration } from "../../ui/overlays";
@@ -49,6 +52,16 @@ export function CourierList() {
       actions={<IconButton icon="bell" label={t("bell_title")} badge={s.unread} onClick={() => nav.push("notifications")} />}
     >
       {party && <Celebration text={t("celebrate")} onDone={() => setParty(false)} />}
+      {!s.me.botReachable && (
+        <div className="card-hc mb-3 rounded-card border-2 border-warn/50 bg-warn-soft p-4">
+          <p className="flex items-start gap-2 font-semibold text-warn">
+            <Icon name="bell" size={20} className="mt-0.5 shrink-0" /> {t("c_bot_off")}
+          </p>
+          <Button block className="mt-3" variant="warn" onClick={() => openTelegramLink(supportLink(s.bot))}>
+            {t("c_bot_open")}
+          </Button>
+        </div>
+      )}
       <Segmented<TabName>
         value={tab}
         onChange={(v) => {

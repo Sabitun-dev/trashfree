@@ -1,4 +1,5 @@
 // Admin orders: filters + search, detail with reassign / cancel (required reason) / refund note, CSV export.
+import { CallButton } from "../../components/CallButton";
 import { useState } from "react";
 import { ORDER_STATUSES, PAYMENT_METHODS } from "@domain/types";
 import { formatSlot } from "@domain/time";
@@ -297,9 +298,7 @@ function PersonLine({ icon, label, p }: { icon: string; label: string; p: Person
         <p className="truncate font-medium">{p ? p.name : "—"}</p>
       </div>
       {p?.phone && (
-        <Button size="md" variant="outline" icon="phone" onClick={() => openLink(`tel:${p.phone}`)} aria-label={t("call")}>
-          {phoneDisplay(p.phone)}
-        </Button>
+        <CallButton phone={p.phone} label={t("call")} size="md" className="shrink-0" />
       )}
     </div>
   );

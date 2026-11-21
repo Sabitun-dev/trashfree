@@ -331,6 +331,8 @@ export const en: Dict = {
   c_no_location: "We need your location. Please allow it.",
   c_open_list: "List",
   c_no_cities: "No city assigned to you. Contact an admin.",
+  c_bot_off: "The bot can't message you about new orders. Open the bot and press “Start”.",
+  c_bot_open: "Open the bot",
 
   a_today: "Today",
   a_week: "Week",

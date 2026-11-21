@@ -344,6 +344,8 @@ export const uz = {
   c_no_location: "Joylashuvingiz kerak. Ruxsat bering.",
   c_open_list: "Ro'yxat",
   c_no_cities: "Sizga shahar biriktirilmagan. Admin bilan bog'laning.",
+  c_bot_off: "Yangi buyurtmalar haqida bot xabar yubora olmayapti. Botni oching va «Start» bosing.",
+  c_bot_open: "Botni ochish",
 
   // admin
   a_today: "Bugun",

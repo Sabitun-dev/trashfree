@@ -68,6 +68,13 @@ meRoutes.post("/me", async (c) => {
   return json(c, publicMe({ ...user, ...u, cityIds: u.courierCities.map((x) => x.cityId) }));
 });
 
+/** The app asked Telegram for permission to message this user and got it. */
+meRoutes.post("/me/write-access", async (c) => {
+  const user = c.get("user");
+  if (user.botBlocked) await db().user.update({ where: { id: user.id }, data: { botBlocked: false } });
+  return json(c, { ok: true });
+});
+
 meRoutes.post("/me/delete-request", async (c) => {
   const user = c.get("user");
   if (!user.deletionRequestedAt) {

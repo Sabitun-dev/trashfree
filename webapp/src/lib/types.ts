@@ -67,6 +67,7 @@ export interface Me {
   mutedCategories: string[];
   cityIds: number[];
   deletionRequested: boolean;
+  botReachable: boolean;
 }
 
 export interface SubscriptionDTO {

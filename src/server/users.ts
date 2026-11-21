@@ -18,6 +18,7 @@ export interface AuthUser {
   mutedCategories: string[];
   cityIds: number[];
   deletionRequestedAt: Date | null;
+  botBlocked: boolean;
 }
 
 export function tgFullName(u: { first_name: string; last_name?: string }): string {
@@ -71,6 +72,7 @@ export function toAuthUser(u: {
   introSeen: string[];
   mutedCategories: string[];
   deletionRequestedAt: Date | null;
+  botBlocked: boolean;
   courierCities: { cityId: number }[];
 }): AuthUser {
   return {
@@ -86,6 +88,7 @@ export function toAuthUser(u: {
     introSeen: u.introSeen,
     mutedCategories: u.mutedCategories,
     deletionRequestedAt: u.deletionRequestedAt,
+    botBlocked: u.botBlocked,
     cityIds: u.courierCities.map((c) => c.cityId),
   };
 }
@@ -102,6 +105,8 @@ export function publicMe(u: AuthUser) {
     mutedCategories: u.mutedCategories,
     cityIds: u.cityIds,
     deletionRequested: !!u.deletionRequestedAt,
+    /** False when the bot could not message this person (they never pressed Start or blocked the bot). */
+    botReachable: !u.botBlocked,
   };
 }
 

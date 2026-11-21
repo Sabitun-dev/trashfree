@@ -344,6 +344,7 @@ model Notification {
   type      String
   payload   Json
   dedupKey  String?
+  delivery  String? // sent | muted | blocked | failed: <reason> — what happened to the bot message
   readAt    DateTime?
   createdAt DateTime  @default(now())
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)

@@ -22,6 +22,11 @@ export async function getBot(): Promise<Bot<BotCtx>> {
   b.use(async (ctx, next) => {
     if (ctx.from && !ctx.from.is_bot && ctx.chat?.type === "private") {
       ctx.appUser = await upsertTelegramUser(ctx.from);
+      // They are writing to the bot, so the bot can write back.
+      if (ctx.appUser.botBlocked) {
+        await db().user.update({ where: { id: ctx.appUser.id }, data: { botBlocked: false } });
+        ctx.appUser = { ...ctx.appUser, botBlocked: false };
+      }
     }
     await next();
   });
