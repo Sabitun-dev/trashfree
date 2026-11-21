@@ -1,14 +1,22 @@
 // Every screen by route name, and the tab roots per mode. Courier and admin screens load lazily.
-import { type ComponentType } from "react";
+import { lazy, type ComponentType } from "react";
 import type { DictKey } from "../i18n/uz";
 import type { Mode } from "../lib/session";
 import { Profile } from "./common/Profile";
 import { Soon } from "./common/Soon";
+import { Addresses } from "./customer/Addresses";
+import { Home } from "./customer/Home";
+import { NewOrder } from "./customer/NewOrder";
+import { OrderDetail } from "./customer/OrderDetail";
+import { Orders } from "./customer/Orders";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const SCREENS: Record<string, ComponentType<any>> = {
-  home: Soon,
-  orders: Soon,
+  home: Home,
+  orders: Orders,
+  new_order: NewOrder,
+  order: OrderDetail,
+  addresses: Addresses,
   plans: Soon,
   profile: Profile,
   c_list: Soon,
@@ -20,6 +28,7 @@ export const SCREENS: Record<string, ComponentType<any>> = {
   a_catalog: Soon,
   a_more: Soon,
 };
+void lazy;
 
 export const TAB_ROOTS: Record<Mode, { name: string; label: DictKey; icon: string }[]> = {
   customer: [

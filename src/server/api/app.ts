@@ -1,5 +1,6 @@
 // All /api/* routes. This file is platform-neutral: a VPS can serve it with @hono/node-server.
 import { auth, createApp } from "./context";
+import { customerRoutes } from "./routes/customer";
 import { meRoutes } from "./routes/me";
 
 export function buildApi() {
@@ -7,5 +8,6 @@ export function buildApi() {
   app.get("/health", (c) => c.json({ ok: true }));
   app.use("*", auth);
   app.route("/", meRoutes);
+  app.route("/", customerRoutes);
   return app;
 }
