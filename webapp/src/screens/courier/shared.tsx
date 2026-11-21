@@ -10,6 +10,7 @@ import { useSession } from "../../lib/session";
 import { getLocation, haptic, openLink, openTelegramLink } from "../../lib/tg";
 import type { OrderDTO } from "../../lib/types";
 import { PhotoPicker } from "../../components/Photos";
+import { openSupport } from "../common/Profile";
 import { Icon } from "../../ui/Icon";
 import { Button, Card, cx } from "../../ui/kit";
 import { BottomSheet, useToast } from "../../ui/overlays";
@@ -142,7 +143,7 @@ export function openDirections(app: NavApp, o: OrderDTO, botUsername: string | n
   if (app === "yandex") openLink(`https://yandex.uz/maps/?rtext=~${o.lat},${o.lng}&rtt=auto`);
   else if (app === "google") openLink(`https://www.google.com/maps/dir/?api=1&destination=${o.lat},${o.lng}`);
   else {
-    void api.post(`/courier/orders/${o.id}/send-location`).then(() => botUsername && openTelegramLink(`https://t.me/${botUsername}`));
+    void api.post(`/courier/orders/${o.id}/send-location`).then(() => openSupport({ username: botUsername }, false));
   }
 }
 

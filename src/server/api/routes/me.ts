@@ -8,7 +8,9 @@ import { db } from "../../db";
 import { bad, conflict } from "../../errors";
 import { getSettings } from "../../settings";
 import { activeSubscription, serializeSubscription } from "../../subscriptions/service";
-import { botUsername } from "../../bot/telegram";
+import { botUsername, tg } from "../../bot/telegram";
+import { bt } from "../../bot/texts";
+import { hit } from "../../ratelimit";
 import { env } from "../../env";
 import { publicMe } from "../../users";
 import { json, body, type Env } from "../context";
@@ -66,6 +68,16 @@ meRoutes.post("/me", async (c) => {
   if (b.mutedCategories) data.mutedCategories = b.mutedCategories;
   const u = await db().user.update({ where: { id: user.id }, data, include: { courierCities: true } });
   return json(c, publicMe({ ...user, ...u, cityIds: u.courierCities.map((x) => x.cityId) }));
+});
+
+/** "Yordam": the bot writes first, so the person lands in a chat that already says what to do. */
+meRoutes.post("/support/start", async (c) => {
+  const user = c.get("user");
+  if (!(await hit(`support-start:${user.id}`, 5, 600))) return json(c, { ok: true });
+  await tg()
+    .sendMessage(Number(user.telegramId), bt(user.language, "help"))
+    .catch(() => {});
+  return json(c, { ok: true });
 });
 
 /** The app asked Telegram for permission to message this user and got it. */

@@ -8,7 +8,7 @@ import { useSession } from "../../lib/session";
 import { openTelegramLink } from "../../lib/tg";
 import { CenterScreen } from "../../ui/layout";
 import { useToast } from "../../ui/overlays";
-import { supportLink } from "./Profile";
+import { openSupport } from "./Profile";
 
 export function Invite({ token }: { token: string }) {
   const t = useT();
@@ -41,12 +41,12 @@ export function Support() {
   const s = useSession();
   const nav = useNav();
   useEffect(() => {
-    openTelegramLink(supportLink(s.bot));
+    openSupport(s.bot);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   return (
     <CenterScreen icon="help" title={t("help")} text={t("write_support")}>
-      <MainButton text={t("write_support")} onClick={() => openTelegramLink(supportLink(s.bot))} secondary={{ text: t("back"), onClick: () => nav.reset("home") }} />
+      <MainButton text={t("write_support")} onClick={() => openSupport(s.bot)} secondary={{ text: t("back"), onClick: () => nav.reset("home") }} />
     </CenterScreen>
   );
 }

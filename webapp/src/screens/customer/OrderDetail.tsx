@@ -19,7 +19,7 @@ import { Button, Card, cx, ErrorState, inputCls, KeyValue, Section, Skeleton, St
 import { Page } from "../../ui/layout";
 import { Celebration, useToast } from "../../ui/overlays";
 import { PaymentBadge, StatusBadge, StatusTracker } from "../../ui/status";
-import { supportLink } from "../common/Profile";
+import { openSupport } from "../common/Profile";
 import { prefillFromOrder, withCodes } from "./prefill";
 import { updateDraft } from "../../lib/draft";
 
@@ -236,7 +236,7 @@ export function OrderDetail({ id }: { id: string }) {
           </Button>
         )}
         {(o.status === "accepted" || o.status === "on_the_way") && (
-          <Button block variant="outline" icon="help" onClick={() => openTelegramLink(supportLink(s.bot))}>
+          <Button block variant="outline" icon="help" onClick={() => openSupport(s.bot)}>
             {t("contact_support")}
           </Button>
         )}

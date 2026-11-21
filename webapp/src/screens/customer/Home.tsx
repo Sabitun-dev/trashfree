@@ -11,7 +11,7 @@ import { OrderCard } from "../../components/OrderCard";
 import { Icon } from "../../ui/Icon";
 import { Card, ErrorState, IconButton, Section, SkeletonList } from "../../ui/kit";
 import { Page } from "../../ui/layout";
-import { supportLink } from "../common/Profile";
+import { openSupport } from "../common/Profile";
 import { prefillFromOrder } from "./prefill";
 import { clearDraft } from "../../lib/draft";
 
@@ -97,7 +97,7 @@ export function Home() {
       </Section>
 
       <Section>
-        <Card className="flex items-center gap-3" onClick={() => openTelegramLink(supportLink(s.bot))}>
+        <Card className="flex items-center gap-3" onClick={() => openSupport(s.bot)}>
           <Icon name="help" className="text-hint" />
           <span className="flex-1 font-medium">{t("help")}</span>
           <Icon name="right" className="text-hint" />

@@ -14,7 +14,7 @@ import { Icon } from "../../ui/Icon";
 import { Button, Card, cx, ProgressBar, Section, SkeletonList } from "../../ui/kit";
 import { Page } from "../../ui/layout";
 import { BottomSheet, useToast } from "../../ui/overlays";
-import { supportLink } from "../common/Profile";
+import { openSupport } from "../common/Profile";
 
 interface SubsResponse {
   active: SubscriptionDTO | null;
@@ -117,7 +117,7 @@ export function Plans() {
             ))}
           </div>
         ) : (
-          <Button block variant="secondary" icon="help" onClick={() => openTelegramLink(supportLink(s.bot))}>
+          <Button block variant="secondary" icon="help" onClick={() => openSupport(s.bot)}>
             {t("contact_support")}
           </Button>
         )}

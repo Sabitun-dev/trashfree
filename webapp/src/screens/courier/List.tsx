@@ -9,7 +9,7 @@ import { useSession } from "../../lib/session";
 import { openTelegramLink } from "../../lib/tg";
 import type { OrderDTO } from "../../lib/types";
 import { Icon } from "../../ui/Icon";
-import { supportLink } from "../common/Profile";
+import { openSupport } from "../common/Profile";
 import { Button, EmptyState, ErrorState, IconButton, Segmented, SkeletonList } from "../../ui/kit";
 import { Page } from "../../ui/layout";
 import { Celebration } from "../../ui/overlays";
@@ -57,7 +57,7 @@ export function CourierList() {
           <p className="flex items-start gap-2 font-semibold text-warn">
             <Icon name="bell" size={20} className="mt-0.5 shrink-0" /> {t("c_bot_off")}
           </p>
-          <Button block className="mt-3" variant="warn" onClick={() => openTelegramLink(supportLink(s.bot))}>
+          <Button block className="mt-3" variant="warn" onClick={() => openSupport(s.bot, false)}>
             {t("c_bot_open")}
           </Button>
         </div>

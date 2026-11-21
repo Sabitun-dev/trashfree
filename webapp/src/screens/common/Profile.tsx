@@ -6,7 +6,7 @@ import { api, ApiError } from "../../lib/api";
 import { phoneDisplay } from "../../lib/format";
 import { useNav } from "../../lib/router";
 import { useSession, type Mode } from "../../lib/session";
-import { confirmDialog, openTelegramLink } from "../../lib/tg";
+import { confirmDialog, openTelegramLink, wa } from "../../lib/tg";
 import type { Me } from "../../lib/types";
 import { Icon } from "../../ui/Icon";
 import { Button, Card, Chip, Row, RowGroup, Section, Toggle } from "../../ui/kit";
@@ -18,6 +18,17 @@ const LANGS = [
   { code: "ru", label: "Русский" },
   { code: "en", label: "English" },
 ] as const;
+
+/**
+ * "Yordam": the bot first writes "ask your question here", then the app closes so the person lands in the bot chat.
+ * (Opening a link to the same bot from inside its own app does nothing visible on most phones.)
+ */
+export async function openSupport(bot: { username: string | null }, prompt = true) {
+  if (prompt) await api.post("/support/start").catch(() => {});
+  if (bot.username) openTelegramLink(`https://t.me/${bot.username}`);
+  const w = wa();
+  if (w) setTimeout(() => w.close(), 400);
+}
 
 export function supportLink(bot: { username: string | null }) {
   return bot.username ? `https://t.me/${bot.username}` : "";
@@ -120,7 +131,7 @@ export function Profile() {
         <RowGroup>
           <Row icon="pin" label={t("my_addresses")} onClick={() => nav.push("addresses")} />
           <Row icon="receipt" label={t("payments_history")} onClick={() => nav.push("payments")} />
-          <Row icon="help" label={t("help")} onClick={() => openTelegramLink(supportLink(s.bot))} />
+          <Row icon="help" label={t("help")} onClick={() => openSupport(s.bot)} />
         </RowGroup>
       </Section>
 
