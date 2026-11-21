@@ -11,6 +11,7 @@ import { NewOrder } from "./customer/NewOrder";
 import { OrderDetail } from "./customer/OrderDetail";
 import { Orders } from "./customer/Orders";
 import { PaymentsHistory, ReceiptScreen } from "./customer/Payments";
+import { Plans } from "./customer/Plans";
 
 const courier = () => import("./courier");
 const CourierList = lazy(() => courier().then((m) => ({ default: m.CourierList })));
@@ -27,7 +28,7 @@ export const SCREENS: Record<string, ComponentType<any>> = {
   addresses: Addresses,
   payments: PaymentsHistory,
   receipt: ReceiptScreen,
-  plans: Soon,
+  plans: Plans,
   profile: Profile,
   notifications: Notifications,
   c_list: CourierList,

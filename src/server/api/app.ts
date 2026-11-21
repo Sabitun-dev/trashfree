@@ -5,6 +5,7 @@ import { customerRoutes } from "./routes/customer";
 import { meRoutes } from "./routes/me";
 import { notificationRoutes } from "./routes/notifications";
 import { paymentRoutes } from "./routes/payments";
+import { subscriptionRoutes } from "./routes/subscriptions";
 
 export function buildApi() {
   const app = createApp().basePath("/api");
@@ -15,5 +16,6 @@ export function buildApi() {
   app.route("/", courierRoutes);
   app.route("/", notificationRoutes);
   app.route("/", paymentRoutes);
+  app.route("/", subscriptionRoutes);
   return app;
 }

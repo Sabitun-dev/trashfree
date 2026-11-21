@@ -32,3 +32,24 @@ export function pricePerPickup(price: number, pickups: number): number {
 export function daysLeft(periodEnd: Date, now: Date): number {
   return Math.ceil((periodEnd.getTime() - now.getTime()) / 86_400_000);
 }
+
+export type ReminderKind = "expiring" | "today" | "expired" | null;
+
+/**
+ * Which renewal reminder is due now: "expiring" N days before the end, "today" on the last day (Tashkent),
+ * "expired" after the end. Nothing if the customer already renewed.
+ */
+export function reminderDue(
+  s: { periodEnd: Date; reminded3d: boolean; remindedDay: boolean; status: string },
+  now: Date,
+  days: number,
+  renewed: boolean,
+): ReminderKind {
+  if (s.status !== "active") return null;
+  if (s.periodEnd <= now) return "expired";
+  if (renewed) return null;
+  const tkDate = (d: Date) => new Date(d.getTime() + 5 * 3600_000).toISOString().slice(0, 10);
+  if (tkDate(s.periodEnd) === tkDate(now) && !s.remindedDay) return "today";
+  if (s.periodEnd.getTime() - now.getTime() <= days * 86_400_000 && !s.reminded3d && tkDate(s.periodEnd) !== tkDate(now)) return "expiring";
+  return null;
+}

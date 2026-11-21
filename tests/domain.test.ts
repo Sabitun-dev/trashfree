@@ -186,3 +186,24 @@ describe("deep links", () => {
     expect(decodeStartParam("x".repeat(65))).toEqual({ name: "home" });
   });
 });
+
+import { reminderDue } from "../src/domain/subscription";
+
+describe("subscription reminders", () => {
+  const now = new Date("2026-11-21T06:00:00Z"); // 11:00 Tashkent
+  const sub = (end: string, r3 = false, rd = false) => ({ periodEnd: new Date(end), reminded3d: r3, remindedDay: rd, status: "active" });
+  it("3 days before → expiring (once)", () => {
+    expect(reminderDue(sub("2026-11-24T05:00:00Z"), now, 3, false)).toBe("expiring");
+    expect(reminderDue(sub("2026-11-24T05:00:00Z", true), now, 3, false)).toBeNull();
+  });
+  it("too early → nothing", () => expect(reminderDue(sub("2026-11-30T05:00:00Z"), now, 3, false)).toBeNull());
+  it("on the day → today (once)", () => {
+    expect(reminderDue(sub("2026-11-21T15:00:00Z", true), now, 3, false)).toBe("today");
+    expect(reminderDue(sub("2026-11-21T15:00:00Z", true, true), now, 3, false)).toBeNull();
+  });
+  it("after the end → expired", () => expect(reminderDue(sub("2026-11-21T05:00:00Z", true, true), now, 3, false)).toBe("expired"));
+  it("already renewed → no reminders, but still expires", () => {
+    expect(reminderDue(sub("2026-11-23T05:00:00Z"), now, 3, true)).toBeNull();
+    expect(reminderDue(sub("2026-11-20T05:00:00Z"), now, 3, true)).toBe("expired");
+  });
+});
