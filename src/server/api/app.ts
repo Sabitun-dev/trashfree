@@ -3,6 +3,7 @@ import { auth, createApp } from "./context";
 import { courierRoutes } from "./routes/courier";
 import { customerRoutes } from "./routes/customer";
 import { meRoutes } from "./routes/me";
+import { notificationRoutes } from "./routes/notifications";
 
 export function buildApi() {
   const app = createApp().basePath("/api");
@@ -11,5 +12,6 @@ export function buildApi() {
   app.route("/", meRoutes);
   app.route("/", customerRoutes);
   app.route("/", courierRoutes);
+  app.route("/", notificationRoutes);
   return app;
 }
