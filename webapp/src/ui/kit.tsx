@@ -93,7 +93,8 @@ export function Card({ children, className, onClick, padded = true }: { children
             }
           : undefined
       }
-      className={cx("card-hc block w-full rounded-card bg-card text-left shadow-[0_1px_2px_rgba(0,0,0,.05)]", padded && "p-4", onClick && "active:scale-[.99] transition", className)}
+      // A caller's own background (bg-accent, bg-warn-soft…) replaces the default card background.
+      className={cx("card-hc block w-full rounded-card text-left shadow-[0_1px_2px_rgba(0,0,0,.05)]", !/(^|\s)bg-/.test(className ?? "") && "bg-card", padded && "p-4", onClick && "active:scale-[.99] transition", className)}
     >
       {children}
     </Tag>

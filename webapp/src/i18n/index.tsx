@@ -21,7 +21,8 @@ function make(lang: Lang): T {
     return params ? s.replace(/\{(\w+)\}/g, (_m, k) => (params[k] !== undefined ? String(params[k]) : "")) : s;
   }) as T;
   fn.lang = lang;
-  fn.name = (item) => localName(item, lang);
+  // Functions have a read-only built-in `name`; redefine it (it is configurable).
+  Object.defineProperty(fn, "name", { value: (item: Named) => localName(item, lang) });
   fn.som = (n) => `${formatNumber(n)} ${dict.som}`;
   fn.has = (key: string): key is DictKey => key in dict;
   return fn;

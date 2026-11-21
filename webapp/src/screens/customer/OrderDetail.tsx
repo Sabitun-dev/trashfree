@@ -164,7 +164,7 @@ export function OrderDetail({ id }: { id: string }) {
           </span>
           <div className="min-w-0 flex-1">
             <p className="text-[14px] text-hint">{t("courier")}</p>
-            <p className="truncate font-semibold">{o.courier.name}</p>
+            <p className="line-clamp-2 break-words font-semibold leading-5">{o.courier.name}</p>
           </div>
           {o.courier.phone && o.status !== "completed" && (
             <Button size="md" icon="phone" onClick={() => openLink(`tel:${o.courier!.phone}`)} aria-label={phoneDisplay(o.courier.phone)}>

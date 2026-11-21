@@ -116,9 +116,14 @@ export function AdminOrders({ filter: initial = {} }: { filter?: OrderFilter }) 
               </div>
               <p className="mt-1 truncate">{o.address}</p>
               <p className="flex items-center justify-between text-[14px] text-hint">
-                <span>{o.customer?.name} · {t(`pm_${o.paymentMethod}`)}{o.courier ? ` · 🚚 ${o.courier.name}` : ""}</span>
+                <span className="min-w-0 truncate">{o.customer?.name ? `${o.customer.name} · ` : ""}{t(`pm_${o.paymentMethod}`)}</span>
                 <span className="money font-semibold text-ink">{t.som(o.priceTotal)}</span>
               </p>
+              {o.courier && (
+                <p className="mt-0.5 flex items-center gap-1.5 text-[14px] text-hint">
+                  <Icon name="truck" size={15} /> {o.courier.name}
+                </p>
+              )}
             </Card>
           ))
         )}

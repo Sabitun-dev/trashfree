@@ -49,8 +49,9 @@ export function StatusTracker({ status, online }: { status: OrderStatus; online:
         {steps.map((s, i) => {
           const done = i < idx;
           const cur = i === idx;
+          const edge = i === 0 ? "items-start text-left" : i === steps.length - 1 ? "items-end text-right" : "items-center text-center";
           return (
-            <li key={s} className="flex w-[36px] flex-col items-center">
+            <li key={s} className={cx("flex w-[36px] flex-col", edge)}>
               <span
                 className={cx(
                   "flex h-9 w-9 items-center justify-center rounded-full border-2 transition-all duration-500",
@@ -61,7 +62,7 @@ export function StatusTracker({ status, online }: { status: OrderStatus; online:
               >
                 <Icon name={done ? "check" : STEP_ICON[s]} size={18} strokeWidth={2.4} />
               </span>
-              <span className={cx("mt-1 w-[72px] text-center text-[12px] leading-[14px]", cur ? "font-bold text-ink" : "text-hint")}>{t(`step_${s}`)}</span>
+              <span className={cx("mt-1 w-[64px] text-[12px] leading-[14px]", i > 0 && i < steps.length - 1 && "text-center", cur ? "font-bold text-ink" : "text-hint")}>{t(`step_${s}`)}</span>
             </li>
           );
         })}

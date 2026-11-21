@@ -122,7 +122,7 @@ export function AdminBroadcast() {
           </RowGroup>
         )}
       </Section>
-      <MainButton text={t("a_bc_send", { n: count ?? 0 })} disabled={!valid || !previewed || !count} loading={busy && previewed} onClick={() => run("send")} />
+      <MainButton text={count ? t("a_bc_send", { n: count }) : t("rate_send")} disabled={!valid || !previewed || !count} loading={busy && previewed} onClick={() => run("send")} />
     </Page>
   );
 }

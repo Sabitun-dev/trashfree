@@ -75,9 +75,9 @@ export function AdminDashboard() {
             <Card>
               <div className="h-44" role="img" aria-label={d.perDay.map((x) => `${x.day}: ${x.count}`).join(", ")}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={d.perDay} margin={{ top: 8, right: 4, bottom: 0, left: -24 }} barCategoryGap={2}>
+                  <BarChart data={d.perDay} margin={{ top: 8, right: 4, bottom: 0, left: 0 }} barCategoryGap={2}>
                     <XAxis dataKey="day" tickFormatter={(v: string) => v.slice(8)} tick={{ fontSize: 12, fill: "rgb(var(--c-hint))" }} axisLine={false} tickLine={false} interval="preserveStartEnd" />
-                    <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: "rgb(var(--c-hint))" }} axisLine={false} tickLine={false} width={40} />
+                    <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: "rgb(var(--c-hint))" }} axisLine={false} tickLine={false} width={30} />
                     <Tooltip
                       cursor={{ fill: "rgb(var(--c-line) / .5)" }}
                       contentStyle={{ background: "rgb(var(--c-card))", border: "1px solid rgb(var(--c-line))", borderRadius: 12, color: "rgb(var(--c-ink))" }}

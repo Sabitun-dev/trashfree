@@ -88,6 +88,15 @@ function BootError({ error, onRetry }: { error: ApiError; onRetry: () => void })
 }
 
 function initialRoutes(startParam: string | null, me: Me): { mode?: Mode; routes: Route[] } {
+  // Development previews only: ?route=[["name",{params}],…] opens a screen stack directly.
+  if (import.meta.env.DEV) {
+    const raw = new URLSearchParams(location.search).get("route");
+    if (raw) {
+      const list = JSON.parse(raw) as [string, Record<string, unknown>?][];
+      const mode = new URLSearchParams(location.search).get("mode") as Mode | null;
+      return { mode: mode ?? undefined, routes: list.map(([name, params]) => ({ name, params })) };
+    }
+  }
   const s = decodeStartParam(startParam);
   const modes = availableModes(me);
   switch (s.name) {

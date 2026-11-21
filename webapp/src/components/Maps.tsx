@@ -135,8 +135,9 @@ export function MapView({
       ).addTo(m);
       layer.current.push(line as unknown as Marker);
     }
-    if (pts.length === 1) m.setView(pts[0], 15);
-    else if (pts.length > 1) m.fitBounds(pts, { padding: [40, 40], maxZoom: 16 });
+    m.invalidateSize();
+    if (pts.length === 1) m.setView(pts[0], 15, { animate: false });
+    else if (pts.length > 1) m.fitBounds(pts, { padding: [40, 40], maxZoom: 16, animate: false });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [L, key]);
 

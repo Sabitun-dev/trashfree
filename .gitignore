@@ -7,3 +7,4 @@ public/app/
 screenshots/
 *.log
 .check.log
+.vite.log
