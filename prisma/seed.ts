@@ -9,9 +9,10 @@ const db = new PrismaClient();
 const catalogOnly = process.argv.includes("--catalog-only");
 
 async function main() {
-  const [users, cities] = await Promise.all([db.user.count(), db.city.count()]);
-  if (users > 0 || cities > 0) {
-    console.error(`❌ The database is not empty (${users} users, ${cities} cities). The seed only runs on an empty database.`);
+  // Owners who already opened the app are fine; an existing catalog or any orders are not.
+  const [cities, types, orders] = await Promise.all([db.city.count(), db.trashType.count(), db.order.count()]);
+  if (cities > 0 || types > 0 || orders > 0) {
+    console.error(`❌ The database already has data (${cities} cities, ${types} trash types, ${orders} orders). The seed only runs on an empty catalog.`);
     process.exit(1);
   }
 
