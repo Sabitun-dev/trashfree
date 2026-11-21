@@ -302,7 +302,7 @@ export const ru: Dict = {
   c_route: "Маршрут",
   c_directions: "Как доехать",
   c_choose_nav: "В каком приложении открыть?",
-  c_nav_yandex: "Яндекс Навигатор",
+  c_nav_yandex: "Яндекс Карты",
   c_nav_google: "Google Maps",
   c_nav_telegram: "Геопозиция в Telegram",
   c_cash_collect: "Наличные: взять {total}",

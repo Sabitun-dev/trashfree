@@ -10,6 +10,12 @@ import { NewOrder } from "./customer/NewOrder";
 import { OrderDetail } from "./customer/OrderDetail";
 import { Orders } from "./customer/Orders";
 
+const courier = () => import("./courier");
+const CourierList = lazy(() => courier().then((m) => ({ default: m.CourierList })));
+const CourierMap = lazy(() => courier().then((m) => ({ default: m.CourierMap })));
+const CourierToday = lazy(() => courier().then((m) => ({ default: m.CourierToday })));
+const CourierOrderScreen = lazy(() => courier().then((m) => ({ default: m.CourierOrderScreen })));
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const SCREENS: Record<string, ComponentType<any>> = {
   home: Home,
@@ -19,16 +25,16 @@ export const SCREENS: Record<string, ComponentType<any>> = {
   addresses: Addresses,
   plans: Soon,
   profile: Profile,
-  c_list: Soon,
-  c_map: Soon,
-  c_today: Soon,
+  c_list: CourierList,
+  c_order: CourierOrderScreen,
+  c_map: CourierMap,
+  c_today: CourierToday,
   a_dash: Soon,
   a_orders: Soon,
   a_people: Soon,
   a_catalog: Soon,
   a_more: Soon,
 };
-void lazy;
 
 export const TAB_ROOTS: Record<Mode, { name: string; label: DictKey; icon: string }[]> = {
   customer: [

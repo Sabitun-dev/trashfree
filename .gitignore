@@ -6,3 +6,4 @@ public/app/
 .netlify/
 screenshots/
 *.log
+.check.log

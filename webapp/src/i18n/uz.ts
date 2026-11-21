@@ -315,7 +315,7 @@ export const uz = {
   c_route: "Marshrut",
   c_directions: "Yo'nalish",
   c_choose_nav: "Qaysi ilovada ochamiz?",
-  c_nav_yandex: "Yandex Navigator",
+  c_nav_yandex: "Yandex Maps",
   c_nav_google: "Google Maps",
   c_nav_telegram: "Telegram joylashuv",
   c_cash_collect: "Naqd: {total} olish kerak",

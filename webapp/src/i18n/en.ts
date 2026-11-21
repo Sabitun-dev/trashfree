@@ -302,7 +302,7 @@ export const en: Dict = {
   c_route: "Route",
   c_directions: "Directions",
   c_choose_nav: "Open in which app?",
-  c_nav_yandex: "Yandex Navigator",
+  c_nav_yandex: "Yandex Maps",
   c_nav_google: "Google Maps",
   c_nav_telegram: "Telegram location",
   c_cash_collect: "Cash: collect {total}",
