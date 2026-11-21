@@ -2,6 +2,7 @@
 import { lazy, type ComponentType } from "react";
 import type { DictKey } from "../i18n/uz";
 import type { Mode } from "../lib/session";
+import { Invite, Support } from "./common/Invite";
 import { Notifications } from "./common/Notifications";
 import { Profile } from "./common/Profile";
 import { Addresses } from "./customer/Addresses";
@@ -33,6 +34,8 @@ export const SCREENS: Record<string, ComponentType<any>> = {
   plans: Plans,
   profile: Profile,
   notifications: Notifications,
+  invite: Invite,
+  support: Support,
   c_list: CourierList,
   c_order: CourierOrderScreen,
   c_map: CourierMap,
