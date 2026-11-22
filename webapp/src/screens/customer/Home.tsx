@@ -2,7 +2,9 @@
 import { localName } from "@domain/types";
 import { useT } from "../../i18n";
 import { api } from "../../lib/api";
-import { useQuery } from "../../lib/query";
+import { prefetchQuery, useQuery } from "../../lib/query";
+import { useEffect } from "react";
+import { loadLeaflet } from "../../lib/leaflet";
 import { useNav } from "../../lib/router";
 import { useSession } from "../../lib/session";
 import { haptic, openTelegramLink } from "../../lib/tg";
@@ -13,7 +15,7 @@ import { Card, ErrorState, IconButton, Section, SkeletonList } from "../../ui/ki
 import { Page } from "../../ui/layout";
 import { openSupport } from "../common/Profile";
 import { prefillFromOrder } from "./prefill";
-import { clearDraft } from "../../lib/draft";
+import { clearDraft, loadDraft } from "../../lib/draft";
 
 export function Home() {
   const t = useT();
@@ -23,6 +25,16 @@ export function Home() {
   const last = useQuery<(OrderDTO & { trashTypeCode: string; packageSizeCode: string }) | null>("orders:last", () => api.get("/orders/last"));
   const sub = s.subscription;
   const firstName = s.me.name.split(" ")[0];
+
+  // While the customer looks at the home screen, quietly prepare everything the order map needs.
+  useEffect(() => {
+    const id = setTimeout(() => {
+      void loadLeaflet();
+      void loadDraft();
+      prefetchQuery("addresses", () => api.get("/addresses"));
+    }, 800);
+    return () => clearTimeout(id);
+  }, []);
 
   return (
     <Page

@@ -168,6 +168,31 @@ export function confirmDialog(msg: string): Promise<boolean> {
  * so it is used only outside Telegram or on old clients — always with a time limit.
  */
 export function getLocation(): Promise<{ lat: number; lng: number } | null> {
+  return fetchLocation().then((p) => {
+    if (p) {
+      try {
+        localStorage.setItem(LAST_LOC, JSON.stringify({ ...p, at: Date.now() }));
+      } catch {
+        /* storage blocked */
+      }
+    }
+    return p;
+  });
+}
+
+const LAST_LOC = "tf_last_loc";
+
+/** The last position we got on this phone (within maxAgeMs), so the map can open in the right place at once. */
+export function lastKnownLocation(maxAgeMs = 30 * 86_400_000): { lat: number; lng: number } | null {
+  try {
+    const v = JSON.parse(localStorage.getItem(LAST_LOC) ?? "null") as { lat: number; lng: number; at: number } | null;
+    return v && Date.now() - v.at < maxAgeMs ? { lat: v.lat, lng: v.lng } : null;
+  } catch {
+    return null;
+  }
+}
+
+function fetchLocation(): Promise<{ lat: number; lng: number } | null> {
   const w = wa();
   const withLimit = <T,>(p: Promise<T | null>, ms: number) => Promise.race([p, new Promise<null>((r) => setTimeout(() => r(null), ms))]);
   const browser = () =>

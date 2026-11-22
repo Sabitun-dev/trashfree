@@ -14,7 +14,7 @@ import { runPayment } from "../../lib/pay";
 import { invalidate, useQuery } from "../../lib/query";
 import { useNav } from "../../lib/router";
 import { useSession } from "../../lib/session";
-import { getLocation, requestWriteAccess } from "../../lib/tg";
+import { getLocation, lastKnownLocation, requestWriteAccess } from "../../lib/tg";
 import type { AddressDTO, CreateOrderResult } from "../../lib/types";
 import { MapPicker } from "../../components/Maps";
 import { PhotoPicker } from "../../components/Photos";
@@ -73,7 +73,10 @@ function StepWhere({ draft }: { draft: Draft }) {
   const [locating, setLocating] = useState(false);
   const geoSeq = useRef(0);
   const city0 = catalog.cities[0];
-  const initial = useRef(draft.lat && draft.lng ? { lat: draft.lat, lng: draft.lng } : city0 ? { lat: city0.centerLat, lng: city0.centerLng } : { lat: 41.3111, lng: 69.2797 });
+  // Open the map where it makes sense right away: the draft, else this phone's last position, else the first city.
+  const initial = useRef(
+    draft.lat && draft.lng ? { lat: draft.lat, lng: draft.lng } : (lastKnownLocation() ?? (city0 ? { lat: city0.centerLat, lng: city0.centerLng } : { lat: 41.3111, lng: 69.2797 })),
+  );
 
   // First visit: jump to the last saved address, or ask for my location — once, after addresses have loaded.
   const started = useRef(false);

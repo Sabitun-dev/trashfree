@@ -47,6 +47,8 @@ let draft: Draft = emptyDraft();
 let loaded = false;
 let restored = false;
 let loading: Promise<void> | null = null;
+/** Bumped whenever the draft is replaced locally, so a slow CloudStorage read can't bring an old draft back. */
+let generation = 0;
 const subs = new Set<() => void>();
 let saveTimer: ReturnType<typeof setTimeout> | undefined;
 
@@ -56,7 +58,9 @@ function emit() {
 
 export function loadDraft(): Promise<void> {
   if (loaded) return Promise.resolve();
+  const gen = generation;
   return (loading ??= cloud.get(KEY).then((raw) => {
+    if (gen !== generation) return; // replaced or cleared meanwhile
     if (raw) {
       try {
         const d = JSON.parse(raw) as Draft;
@@ -81,6 +85,8 @@ export function updateDraft(patch: Partial<Draft>) {
 }
 
 export function replaceDraft(d: Draft) {
+  generation++;
+  loaded = true;
   draft = d;
   restored = false;
   emit();
@@ -88,6 +94,8 @@ export function replaceDraft(d: Draft) {
 }
 
 export function clearDraft() {
+  generation++;
+  loaded = true;
   draft = emptyDraft();
   restored = false;
   emit();

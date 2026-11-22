@@ -16,6 +16,21 @@ export function invalidate(prefix: string) {
   emit();
 }
 
+/** Load data into the cache in the background (no re-render until someone reads it). */
+export function prefetchQuery<T>(key: string, fetcher: () => Promise<T>) {
+  if (cache.has(key)) return;
+  const promise = fetcher()
+    .then((data) => {
+      cache.set(key, { data, at: Date.now() });
+      emit();
+    })
+    .catch(() => {
+      cache.delete(key);
+      emit();
+    });
+  cache.set(key, { at: 0, promise });
+}
+
 export function setQueryData<T>(key: string, data: T) {
   cache.set(key, { data, at: Date.now() });
   emit();
