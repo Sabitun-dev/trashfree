@@ -43,46 +43,50 @@ export function ServiceMenu() {
   }
 
   return (
-    <div className="space-y-3">
-      {list.map((s, i) => {
-        const m = META[s.code];
-        const open = s.visibility === "open";
-        // The first open service is the big green button; others are white cards (one main action per screen).
-        const primary = open && list.findIndex((x) => x.visibility === "open") === i;
-        return (
-          <button
-            key={s.code}
-            onClick={() => start(s)}
-            aria-disabled={!open}
-            className={cx(
-              "card-hc relative flex w-full items-center gap-4 overflow-hidden text-left transition active:scale-[.98]",
-              primary ? "rounded-[24px] bg-accent p-5 text-on-accent shadow-lg shadow-accent/25" : "rounded-card bg-card p-4 text-ink shadow-[0_1px_2px_rgba(0,0,0,.05)]",
-              !open && "opacity-70",
-            )}
-          >
-            <span
+    <section aria-label={t("svc_pick")}>
+      <h2 className="mb-3 px-1 text-[20px] font-bold tracking-tight">{t("svc_pick")}</h2>
+      <div className="space-y-3">
+        {list.map((s) => {
+          const m = META[s.code];
+          const open = s.visibility === "open";
+          // All services carry equal weight: same size and layout, each with its own colour.
+          const tone = open ? TONE[s.code] : TONE_OFF;
+          return (
+            <button
+              key={s.code}
+              onClick={() => start(s)}
+              aria-disabled={!open}
               className={cx(
-                "flex shrink-0 items-center justify-center rounded-2xl",
-                primary ? "h-16 w-16 bg-white/20" : "h-12 w-12",
-                !primary && (open ? "bg-accent-soft text-accent-ink" : "bg-mute-soft text-mute"),
+                "card-hc relative flex min-h-[92px] w-full items-center gap-4 overflow-hidden rounded-[22px] border-2 p-4 text-left transition active:scale-[.98]",
+                tone.card,
               )}
             >
-              <Icon name={m.icon} size={primary ? 34 : 26} />
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className={cx("block font-extrabold", primary ? "text-[22px] leading-7" : "text-[18px] leading-6")}>{t(m.label)}</span>
-              <span className={cx("mt-0.5 block text-[15px] leading-5", primary ? "opacity-90" : "text-hint")}>
-                {open ? t(m.sub) : s.message?.trim() || t("svc_unavailable")}
+              <span className={cx("flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl", tone.icon)}>
+                <Icon name={m.icon} size={30} />
               </span>
-              {!open && <span className="mt-1 inline-block rounded-full bg-mute-soft px-2 py-0.5 text-[13px] font-semibold text-mute">{t("svc_unavailable")}</span>}
-            </span>
-            {open && <Icon name="right" size={primary ? 26 : 22} className={primary ? "" : "text-hint"} />}
-          </button>
-        );
-      })}
-      {openCount === 0 && list.length === 0 && (
-        <div className="card-hc rounded-card bg-card p-5 text-center text-hint">{t("svc_unavailable")}</div>
-      )}
-    </div>
+              <span className="min-w-0 flex-1">
+                <span className={cx("block text-[19px] font-extrabold leading-6", open ? "text-ink" : "text-mute")}>{t(m.label)}</span>
+                <span className="mt-0.5 block text-[15px] leading-5 text-hint">{open ? t(m.sub) : s.message?.trim() || t("svc_unavailable")}</span>
+                {!open && <span className="mt-1.5 inline-block rounded-full bg-mute-soft px-2 py-0.5 text-[13px] font-semibold text-mute">{t("svc_unavailable")}</span>}
+              </span>
+              {open && (
+                <span className={cx("flex h-10 w-10 shrink-0 items-center justify-center rounded-full", tone.arrow)}>
+                  <Icon name="right" size={22} strokeWidth={2.6} />
+                </span>
+              )}
+            </button>
+          );
+        })}
+        {openCount === 0 && list.length === 0 && <div className="card-hc rounded-card bg-card p-5 text-center text-hint">{t("svc_unavailable")}</div>}
+      </div>
+    </section>
   );
 }
+
+/** One colour family per service (theme tokens, so light and dark both stay readable). */
+const TONE = {
+  trash: { card: "border-accent/25 bg-accent-soft/60", icon: "bg-accent text-on-accent", arrow: "bg-accent text-on-accent" },
+  carpet: { card: "border-violet/25 bg-violet-soft/60", icon: "bg-violet text-card", arrow: "bg-violet text-card" },
+  curtain: { card: "border-info/25 bg-info-soft/60", icon: "bg-info text-card", arrow: "bg-info text-card" },
+} as const;
+const TONE_OFF = { card: "border-line bg-card opacity-80", icon: "bg-mute-soft text-mute", arrow: "" };

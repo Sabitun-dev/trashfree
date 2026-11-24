@@ -456,6 +456,7 @@ export const en: Dict = {
   a_reset: "Reset",
   a_user_orders: "Orders",
   svc_trash: "Trash pickup",
+  svc_pick: "Which service do you need?",
   svc_carpet: "Carpet washing",
   svc_curtain: "Curtain washing",
   svc_trash_sub: "4 steps · 1 minute",

@@ -456,6 +456,7 @@ export const ru: Dict = {
   a_reset: "Сбросить",
   a_user_orders: "Заказы",
   svc_trash: "Вывоз мусора",
+  svc_pick: "Какая услуга нужна?",
   svc_carpet: "Стирка ковров",
   svc_curtain: "Стирка штор",
   svc_trash_sub: "4 шага · 1 минута",

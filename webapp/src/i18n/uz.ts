@@ -471,6 +471,7 @@ export const uz = {
   a_user_orders: "Buyurtmalari",
   // services
   svc_trash: "Chiqindi olib ketish",
+  svc_pick: "Qaysi xizmat kerak?",
   svc_carpet: "Gilam yuvish",
   svc_curtain: "Parda yuvish",
   svc_trash_sub: "4 qadam · 1 daqiqa",
