@@ -8,7 +8,7 @@ import { useQuery } from "../../lib/query";
 import { useNav } from "../../lib/router";
 import { useSession } from "../../lib/session";
 import { Icon } from "../../ui/Icon";
-import { Card, cx, ErrorState, IconButton, Section, Segmented, SkeletonList } from "../../ui/kit";
+import { Card, Chip, cx, ErrorState, IconButton, Section, Segmented, SkeletonList } from "../../ui/kit";
 import { Page } from "../../ui/layout";
 
 type Period = "today" | "week" | "month";
@@ -25,7 +25,15 @@ interface Dash {
   byCity: { cityId: number; count: number }[];
   couriers: { courierId: number; name: string; pickups: number; avgMinutes: number | null; avgRating: number | null }[];
   perDay: { day: string; count: number }[];
+  washerPayouts: number;
+  courierPay: number;
+  margin: number;
+  cashByCourier: { courier: { id: number; name: string }; amount: number; orders: number }[];
+  byService: { service: "trash" | "carpet" | "curtain"; count: number }[];
+  measurement: { courierId: number; name: string; orders: number; avgDiffPct: number }[];
 }
+
+type Svc = "all" | "trash" | "carpet" | "curtain";
 
 export type OrderFilter = Record<string, string | number | undefined>;
 
@@ -34,13 +42,21 @@ export function AdminDashboard() {
   const nav = useNav();
   const s = useSession();
   const [period, setPeriod] = useState<Period>("today");
-  const q = useQuery<Dash>(`admin:dash:${period}`, () => api.get(`/admin/dashboard?period=${period}`), { refreshMs: 60_000 });
+  const [svc, setSvc] = useState<Svc>("all");
+  const q = useQuery<Dash>(`admin:dash:${period}:${svc}`, () => api.get(`/admin/dashboard?period=${period}&service=${svc}`), { refreshMs: 60_000 });
   const d = q.data;
   const range = d ? { dateFrom: d.fromDate, dateTo: d.toDate } : {};
-  const open = (f: OrderFilter) => nav.push("a_orders", { filter: { ...range, ...f } });
+  const open = (f: OrderFilter) => nav.push("a_orders", { filter: { ...range, ...f, ...(svc === "carpet" || svc === "curtain" ? { service: svc } : {}) } });
 
   return (
     <Page hasTabBar title={t("tab_dashboard")} actions={<IconButton icon="bell" label={t("bell_title")} badge={s.unread} onClick={() => nav.push("notifications")} />}>
+      <div className="-mx-4 mb-3 flex gap-2 overflow-x-auto px-4 no-scrollbar">
+        {(["all", "trash", "carpet", "curtain"] as Svc[]).map((x) => (
+          <Chip key={x} selected={svc === x} onClick={() => setSvc(x)}>
+            {x === "all" ? t("all") : t(x === "trash" ? "svc_trash" : x === "carpet" ? "svc_carpet" : "svc_curtain")}
+          </Chip>
+        ))}
+      </div>
       <Segmented<Period>
         value={period}
         onChange={setPeriod}
@@ -99,6 +115,22 @@ export function AdminDashboard() {
             </Card>
           </Section>
 
+          {svc !== "trash" && (
+            <div className="mt-3 grid grid-cols-3 gap-2">
+              <MoneyTile label={t("a_washer_payouts")} value={t.som(d.washerPayouts)} />
+              <MoneyTile label={t("a_courier_pay")} value={t.som(d.courierPay)} />
+              <MoneyTile label={t("a_margin")} value={t.som(d.margin)} strong />
+            </div>
+          )}
+
+          {d.byService.length > 1 && (
+            <Section title={t("a_by_service")}>
+              <Card>
+                <Bars rows={d.byService.map((r) => ({ key: r.service, label: t(r.service === "trash" ? "svc_trash" : r.service === "carpet" ? "svc_carpet" : "svc_curtain"), value: r.count, display: String(r.count) }))} />
+              </Card>
+            </Section>
+          )}
+
           <Section title={t("a_by_type")}>
             <Card>
               <Bars rows={d.byType.map((r) => {
@@ -145,9 +177,46 @@ export function AdminDashboard() {
               <Card className="text-center text-hint">{t("a_no_data")}</Card>
             )}
           </Section>
+
+          {d.cashByCourier.length > 0 && (
+            <Section title={t("a_cash_by_courier")}>
+              <Card onClick={() => nav.push("a_cash")}>
+                <Bars rows={d.cashByCourier.map((c) => ({ key: String(c.courier.id), label: c.courier.name, value: c.amount, display: t.som(c.amount) }))} />
+              </Card>
+            </Section>
+          )}
+
+          {d.measurement.length > 0 && (
+            <Section title={t("a_measure_acc")}>
+              <div className="card-hc overflow-hidden rounded-card bg-card">
+                <table className="w-full text-[15px]">
+                  <tbody>
+                    {d.measurement.map((m) => (
+                      <tr key={m.courierId} className="border-b border-line last:border-0">
+                        <td className="px-3 py-2.5 font-medium">{m.name}</td>
+                        <td className="px-2 py-2.5 text-right text-hint">{m.orders} {t("pcs")}</td>
+                        <td className={cx("px-3 py-2.5 text-right font-semibold tabular-nums", m.avgDiffPct > 5 ? "text-danger" : "text-ink")}>
+                          {m.avgDiffPct}% <span className="text-[13px] font-normal text-hint">{t("a_avg_diff")}</span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </Section>
+          )}
         </>
       )}
     </Page>
+  );
+}
+
+function MoneyTile({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
+  return (
+    <Card className="p-3">
+      <p className="text-[13px] leading-4 text-hint">{label}</p>
+      <p className={cx("mt-1 break-words text-[15px] leading-5 tabular-nums", strong ? "font-extrabold text-accent-ink" : "font-bold")}>{value}</p>
+    </Card>
   );
 }
 

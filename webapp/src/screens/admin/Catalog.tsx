@@ -82,6 +82,8 @@ export function AdminCatalog() {
         <Row icon="clock" label={t("a_slots")} onClick={() => nav.push("a_entities", { entity: "slots" })} />
         <Row icon="map" label={t("a_cities")} onClick={() => nav.push("a_entities", { entity: "cities" })} />
         <Row icon="crown" label={t("a_plans")} onClick={() => nav.push("a_entities", { entity: "plans" })} />
+        <Row icon="carpet" label={t("a_wash_prices", { svc: t("svc_carpet") })} onClick={() => nav.push("a_wash_settings", { service: "carpet" })} />
+        <Row icon="curtain" label={t("a_wash_prices", { svc: t("svc_curtain") })} onClick={() => nav.push("a_wash_settings", { service: "curtain" })} />
       </RowGroup>
       <Section>
         <RowGroup>

@@ -2,6 +2,8 @@
 import { Prisma } from "@prisma/client";
 import { addDays, tashkentDate, tashkentInstant } from "../../domain/time";
 import { db } from "../db";
+import { measurementAccuracy, washReport, type ServiceFilter } from "../wash/reports";
+import { outstandingCash } from "./orders";
 
 export type Period = "today" | "week" | "month";
 
@@ -72,5 +74,63 @@ export async function dashboard(period: Period, cityId?: number, now = new Date(
       avgRating: c.avgRating == null ? null : Math.round(Number(c.avgRating) * 10) / 10,
     })),
     perDay: days,
+  };
+}
+
+/**
+ * Dashboard with a service filter: trash, carpet, curtain or all.
+ * "trash" returns exactly the trash numbers as before; carpet/curtain add washer payouts, courier pay and margin.
+ */
+export async function dashboardByService(period: Period, service: ServiceFilter, cityId?: number, now = new Date()) {
+  const range = periodRange(period, now);
+  const washService = service === "carpet" || service === "curtain" ? service : null;
+  const [trash, wash, accuracy, cash, byService] = await Promise.all([
+    service === "all" || service === "trash" ? dashboard(period, cityId, now) : null,
+    service === "trash" ? null : washReport(range.from, range.to, washService, cityId),
+    service === "trash" ? [] : measurementAccuracy(range.from, range.to, washService),
+    outstandingCash(),
+    db().washOrder.groupBy({ by: ["service"], where: { createdAt: { gte: range.from, lt: range.to }, ...(cityId ? { cityId } : {}) }, _count: true }),
+  ]);
+  const revenue: Record<string, number> = {};
+  for (const src of [trash?.revenue, wash?.revenue]) for (const [k, v] of Object.entries(src ?? {})) revenue[k] = (revenue[k] ?? 0) + v;
+  const revenueTotal = Object.values(revenue).reduce((a, b) => a + b, 0);
+  const washerPayouts = wash?.washerPayouts ?? 0;
+  const courierPay = wash?.courierPay ?? 0;
+  const perDay = (trash?.perDay ?? []).map((d) => ({ ...d }));
+  if (!trash) for (let d = range.fromDate; d <= range.toDate; d = addDays(d, 1)) perDay.push({ day: d, count: 0 });
+  for (const day of wash?.createdDays ?? []) {
+    const row = perDay.find((p) => p.day === day);
+    if (row) row.count++;
+  }
+  const trashCount = trash ? trash.orders.total : 0;
+  return {
+    period,
+    service,
+    fromDate: range.fromDate,
+    toDate: range.toDate,
+    orders: {
+      total: (trash?.orders.total ?? 0) + (wash?.orders.total ?? 0),
+      completed: (trash?.orders.completed ?? 0) + (wash?.orders.completed ?? 0),
+      pending: (trash?.orders.pending ?? 0) + (wash?.orders.pending ?? 0),
+      awaitingPayment: trash?.orders.awaitingPayment ?? 0,
+      cancelled: (trash?.orders.cancelled ?? 0) + (wash?.orders.cancelled ?? 0),
+    },
+    revenue,
+    revenueTotal,
+    washerPayouts,
+    courierPay,
+    margin: revenueTotal - washerPayouts - courierPay,
+    cashNotHandedOver: cash.reduce((s, c) => s + c.amount, 0),
+    cashNotHandedOverOrders: cash.reduce((s, c) => s + c.orders, 0),
+    cashByCourier: cash,
+    byService: [
+      ...(service === "all" || service === "trash" ? [{ service: "trash", count: trashCount }] : []),
+      ...byService.filter((r) => service === "all" || r.service === service).map((r) => ({ service: r.service, count: r._count })),
+    ],
+    byType: trash?.byType ?? [],
+    byCity: trash?.byCity ?? [],
+    couriers: trash?.couriers ?? [],
+    measurement: accuracy,
+    perDay,
   };
 }

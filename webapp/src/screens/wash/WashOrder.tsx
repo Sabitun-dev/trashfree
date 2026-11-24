@@ -160,9 +160,10 @@ export function WashOrderScreen({ id }: { id: string }) {
         <Section title={t("a_revenue")}>
           <Card className="text-[16px]">
             <KeyValue k={t("total")} v={t.som(o.money.total ?? 0)} />
-            <KeyValue k="Washer" v={t.som(o.money.washerPayout ?? 0)} />
-            <KeyValue k={t("courier")} v={t.som(o.money.courierPay ?? 0)} />
-            <KeyValue k="Margin" v={<b>{t.som(o.money.margin ?? 0)}</b>} />
+            <KeyValue k={t("a_washer_payouts")} v={t.som(o.money.washerPayout ?? 0)} />
+            <KeyValue k={t("a_courier_pay")} v={t.som(o.money.courierPay ?? 0)} />
+            {o.money.cashCollected != null && <KeyValue k={t("c_today_cash")} v={t.som(o.money.cashCollected)} />}
+            <KeyValue k={t("a_margin")} v={<b>{t.som(o.money.margin ?? 0)}</b>} />
             {o.money.waiveDelivery && <KeyValue k={t("aw_waive")} v={o.money.waiveReason ?? ""} />}
           </Card>
         </Section>

@@ -1,5 +1,6 @@
 // Admin orders: filters + search, detail with reassign / cancel (required reason) / refund note, CSV export.
 import { CallButton } from "../../components/CallButton";
+import { AdminWashList } from "./WashAdmin";
 import { useState } from "react";
 import { ORDER_STATUSES, PAYMENT_METHODS } from "@domain/types";
 import { formatSlot } from "@domain/time";
@@ -14,7 +15,7 @@ import type { OrderDTO, PersonDTO } from "../../lib/types";
 import { MapView } from "../../components/Maps";
 import { PrivatePhoto } from "../../components/Photos";
 import { Icon } from "../../ui/Icon";
-import { Button, Card, Chip, EmptyState, ErrorState, inputCls, KeyValue, Section, Skeleton, SkeletonList } from "../../ui/kit";
+import { Button, Card, Chip, EmptyState, ErrorState, inputCls, KeyValue, Section, Segmented, Skeleton, SkeletonList } from "../../ui/kit";
 import { Page } from "../../ui/layout";
 import { BottomSheet, useToast } from "../../ui/overlays";
 import { PaymentBadge, StatusBadge } from "../../ui/status";
@@ -36,7 +37,8 @@ export function AdminOrders({ filter: initial = {} }: { filter?: OrderFilter }) 
   const [filter, setFilter] = useState<OrderFilter>(initial);
   const [search, setSearch] = useState("");
   const [sheet, setSheet] = useState(false);
-  const f = { ...filter, q: search.trim() || undefined };
+  const [svc, setSvc] = useState<"trash" | "carpet" | "curtain">((initial.service as "carpet" | "curtain" | undefined) ?? "trash");
+  const f = { ...filter, service: undefined, q: search.trim() || undefined };
   const key = `admin:orders:${qs(f)}`;
   const first = useQuery<{ items: AdminOrder[]; next: string | null }>(key, () => api.get(`/admin/orders?${qs(f)}`), { refreshMs: 30_000 });
   const [more, setMore] = useState<AdminOrder[]>([]);
@@ -79,12 +81,25 @@ export function AdminOrders({ filter: initial = {} }: { filter?: OrderFilter }) 
         </Button>
       }
     >
-      <div className="flex gap-2">
+      <Segmented<"trash" | "carpet" | "curtain">
+        value={svc}
+        onChange={setSvc}
+        options={[
+          { value: "trash", label: t("svc_trash") },
+          { value: "carpet", label: t("svc_carpet") },
+          { value: "curtain", label: t("svc_curtain") },
+        ]}
+      />
+      <div className="mt-3 flex gap-2">
         <input className={inputCls} placeholder={t("a_search_ph")} value={search} onChange={(e) => setSearch(e.target.value)} />
         <Button variant={activeCount ? "secondary" : "outline"} icon="settings" onClick={() => setSheet(true)} aria-label={t("a_filters")}>
           {activeCount || ""}
         </Button>
       </div>
+      {svc !== "trash" ? (
+        <AdminWashList service={svc} search={search.trim() || undefined} />
+      ) : (
+      <>
       <div className="-mx-4 mt-3 flex gap-2 overflow-x-auto px-4 no-scrollbar">
         {[
           ["", t("all")],
@@ -134,6 +149,8 @@ export function AdminOrders({ filter: initial = {} }: { filter?: OrderFilter }) 
           </Button>
         )}
       </div>
+      </>
+      )}
 
       <BottomSheet open={sheet} onClose={() => setSheet(false)} title={t("a_filters")}>
         <div className="space-y-4">

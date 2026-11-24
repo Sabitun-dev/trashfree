@@ -34,7 +34,7 @@ import {
   deliverWash,
 } from "../../wash/service";
 import { startWashPayment } from "../../payments/start";
-import { currentWashSettings, toPricing } from "../../wash/settings";
+import { currentWashSettings, saveWashSettings, toPricing, washSettingsHistory } from "../../wash/settings";
 import type { Role } from "../../../domain/types";
 import type { AuthUser } from "../../users";
 import { body, json, query, type Env } from "../context";
@@ -190,4 +190,60 @@ courierAction("deliver", (u, id, b) => deliverWash(u, id, z.object({ cashReceive
 washRoutes.post("/wash/orders/:id/pay", async (c) => {
   const b = await body(c, z.object({ method: z.enum(["click", "payme", "card"]) }));
   return json(c, { payment: await startWashPayment(c.req.param("id"), c.get("user"), b.method) });
+});
+
+// ---- Admin: price settings (history) and order list ----
+const adminOnly = (role: Role) => {
+  if (!isAdmin(role)) throw forbidden();
+};
+const svcParam = z.enum(["carpet", "curtain"]);
+const pricingSchema = z.object({
+  pricePerM2: z.number().int().min(0).max(10_000_000),
+  washerSharePerM2: z.number().int().min(0).max(10_000_000),
+  minOrder: z.number().int().min(0).max(100_000_000),
+  maxOrder: z.number().int().min(1).max(1_000_000_000),
+  maxItems: z.number().int().min(1).max(50),
+  deliveryFee: z.number().int().min(0).max(10_000_000),
+  freeDeliveryFrom: z.number().int().min(0).max(1_000_000_000),
+  tolerancePct: z.number().min(0).max(100),
+  courierPay: z.number().int().min(0).max(10_000_000),
+});
+
+washRoutes.get("/admin/wash-settings/:service", async (c) => {
+  adminOnly(c.get("user").role);
+  const service = svcParam.parse(c.req.param("service"));
+  const [current, history] = await Promise.all([currentWashSettings(service), washSettingsHistory(service)]);
+  return json(c, { current, history });
+});
+
+washRoutes.put("/admin/wash-settings/:service", async (c) => {
+  const user = c.get("user");
+  adminOnly(user.role);
+  const service = svcParam.parse(c.req.param("service"));
+  return json(c, await saveWashSettings(user, service, pricingSchema.parse(await c.req.json())));
+});
+
+washRoutes.get("/admin/wash-orders", async (c) => {
+  adminOnly(c.get("user").role);
+  const q = query(
+    c,
+    z.object({ service: svcParam.optional(), status: z.string().max(200).optional(), cityId: z.coerce.number().int().optional(), q: z.string().trim().max(60).optional(), onHold: z.enum(["1"]).optional() }),
+  );
+  const statuses = q.status?.split(",").filter(Boolean) as WashStatus[] | undefined;
+  const num = q.q?.replace(/^[GgPp]-?/, "");
+  const list = await db().washOrder.findMany({
+    where: {
+      ...(q.service ? { service: q.service } : {}),
+      ...(statuses?.length ? { status: { in: statuses } } : {}),
+      ...(q.cityId ? { cityId: q.cityId } : {}),
+      ...(q.onHold ? { onHold: true } : {}),
+      ...(q.q
+        ? { OR: [...(/^\d{1,9}$/.test(num ?? "") ? [{ number: Number(num) }] : []), { address: { contains: q.q, mode: "insensitive" as const } }, { customer: { phone: { contains: q.q.replace(/\D/g, "") || "-" } } }] }
+        : {}),
+    },
+    include: washInclude,
+    orderBy: { createdAt: "desc" },
+    take: 60,
+  });
+  return json(c, list.map((o) => serializeWash(o, "admin")));
 });

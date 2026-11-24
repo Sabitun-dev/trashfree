@@ -4,7 +4,7 @@ import { z } from "zod";
 import { ROLES } from "../../../domain/types";
 import { audienceCount, broadcastSchema, createBroadcast, previewBroadcast } from "../../admin/broadcast";
 import { savePrices, updateSettings, upsertEntity, type Entity } from "../../admin/catalog";
-import { dashboard } from "../../admin/dashboard";
+import { dashboardByService } from "../../admin/dashboard";
 import { confirmHandover, exportCsv, handoverHistory, listOrders, orderFilterSchema, outstandingCash, reassign, setRefundNote } from "../../admin/orders";
 import { createInvite, erasePersonalData, grantSubscription, searchPeople, setBlocked, setCourierServices, setRole } from "../../admin/people";
 import { SERVICE_CODES } from "../../../domain/services";
@@ -27,8 +27,8 @@ const reason = z.string().trim().min(2).max(500);
 
 // ---- Dashboard ----
 adminRoutes.get("/admin/dashboard", async (c) => {
-  const q = query(c, z.object({ period: z.enum(["today", "week", "month"]).default("today"), cityId: z.coerce.number().int().optional() }));
-  return json(c, await dashboard(q.period, q.cityId));
+  const q = query(c, z.object({ period: z.enum(["today", "week", "month"]).default("today"), cityId: z.coerce.number().int().optional(), service: z.enum(["all", "trash", "carpet", "curtain"]).default("all") }));
+  return json(c, await dashboardByService(q.period, q.service, q.cityId));
 });
 
 // ---- Orders ----
