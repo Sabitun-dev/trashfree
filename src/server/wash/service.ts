@@ -416,3 +416,88 @@ export async function releaseHold(admin: AuthUser, id: string, reason: string) {
 export async function listWashers() {
   return db().user.findMany({ where: { role: "washer", blocked: false, deletedAt: null }, select: { id: true, name: true }, orderBy: { name: "asc" } });
 }
+
+// ---------------- Delivery, payment, closing ----------------
+
+export async function outForDelivery(user: AuthUser, id: string) {
+  const ok = await db().$transaction(async (tx) => {
+    const o = await tx.washOrder.findUnique({ where: { id } });
+    if (!o || o.courierId !== user.id) return false;
+    return transition(tx, id, "washed", "out_for_delivery", user.id);
+  });
+  if (!ok) throw conflict("bad_status");
+  const full = (await loadWash(id))!;
+  await notifyWashStatus(full, "out_for_delivery");
+  return full;
+}
+
+/**
+ * Delivered. If the client didn't pay online, the courier records the cash he received — without ever seeing
+ * the price. The server compares it with the total and alerts the admin when it differs.
+ */
+export async function deliverWash(user: AuthUser, id: string, cashReceived: number | null) {
+  const o = await db().washOrder.findUnique({ where: { id } });
+  if (!o || o.courierId !== user.id) throw notFound();
+  const paidOnline = o.paymentStatus === "paid";
+  if (!paidOnline && (cashReceived == null || !Number.isInteger(cashReceived) || cashReceived < 0)) throw bad("cash_required");
+  const ok = await db().$transaction((tx) =>
+    transition(
+      tx,
+      id,
+      "out_for_delivery",
+      "delivered_paid",
+      user.id,
+      paidOnline ? {} : { cashCollected: cashReceived, paymentMethod: "cash", paymentStatus: "paid" },
+      paidOnline ? "paid online" : `cash recorded: ${cashReceived}`,
+    ),
+  );
+  if (!ok) throw conflict("bad_status");
+  const full = (await loadWash(id))!;
+  await notifyWashStatus(full, "delivered_paid");
+  if (!paidOnline && cashReceived !== o.total) {
+    await alertAdmins("alert_cash_diff", { num: washNumber(o.service as WashService, o.number), got: `${cashReceived}`, due: `${o.total ?? 0}` }, full, `cashdiff:${id}`);
+  }
+  return full;
+}
+
+/** Scheduler: delivered orders close automatically after 24 h. */
+export async function closeDeliveredWash(now = new Date()) {
+  const due = await db().washOrder.findMany({ where: { status: "delivered_paid", statusAt: { lt: new Date(now.getTime() - 24 * 3600_000) } }, select: { id: true }, take: 200 });
+  let closed = 0;
+  for (const o of due) if (await db().$transaction((tx) => transition(tx, o.id, "delivered_paid", "closed", null, {}, "auto-closed after 24 h"))) closed++;
+  return { closed };
+}
+
+/** Scheduler: alert admins about orders that haven't moved for too long (once per status change). */
+export async function alertStuckWash(now = new Date(), hours = 24) {
+  const before = new Date(now.getTime() - hours * 3600_000);
+  const stuck = await db().washOrder.findMany({
+    where: { status: { notIn: ["delivered_paid", "closed", "cancelled"] }, statusAt: { lt: before }, OR: [{ alertedStuckAt: null }, { alertedStuckAt: { lt: before } }] },
+    take: 100,
+  });
+  for (const o of stuck) {
+    await alertAdmins("alert_stuck", { num: washNumber(o.service as WashService, o.number), status: o.status, hours: Math.floor((now.getTime() - o.statusAt.getTime()) / 3600_000) }, o, `stuck:${o.id}:${o.statusAt.getTime()}`);
+    await db().washOrder.update({ where: { id: o.id }, data: { alertedStuckAt: now } });
+  }
+  return { stuck: stuck.length };
+}
+
+/** Scheduler (daily): alert admins about couriers holding cash since before yesterday (trash + carpet/curtain). */
+export async function alertCashNotHandedOver(now = new Date()) {
+  const cutoff = new Date(now.getTime() - 24 * 3600_000);
+  const [trash, wash] = await Promise.all([
+    db().order.groupBy({ by: ["courierId"], where: { paymentMethod: "cash", status: "completed", cashHandoverId: null, cashCollected: { not: null }, completedAt: { lt: cutoff }, courierId: { not: null } }, _sum: { cashCollected: true }, _count: true }),
+    db().washOrder.groupBy({ by: ["courierId"], where: { status: { in: ["delivered_paid", "closed"] }, cashHandoverId: null, cashCollected: { not: null }, statusAt: { lt: cutoff }, courierId: { not: null } }, _sum: { cashCollected: true }, _count: true }),
+  ]);
+  const totals = new Map<number, { amount: number; count: number }>();
+  for (const r of [...trash, ...wash]) {
+    const cur = totals.get(r.courierId!) ?? { amount: 0, count: 0 };
+    totals.set(r.courierId!, { amount: cur.amount + (r._sum.cashCollected ?? 0), count: cur.count + r._count });
+  }
+  const users = await db().user.findMany({ where: { id: { in: [...totals.keys()] } }, select: { id: true, name: true } });
+  const day = now.toISOString().slice(0, 10);
+  for (const [id, v] of totals) {
+    await alertAdmins("alert_cash", { courier: users.find((u) => u.id === id)?.name ?? `#${id}`, amount: `${v.amount}`, count: v.count }, null, `cash:${id}:${day}`);
+  }
+  return { couriers: totals.size };
+}

@@ -30,7 +30,10 @@ import {
   releaseHold,
   washerMeasure,
   washerMeasureSchema,
+  outForDelivery,
+  deliverWash,
 } from "../../wash/service";
+import { startWashPayment } from "../../payments/start";
 import { currentWashSettings, toPricing } from "../../wash/settings";
 import type { Role } from "../../../domain/types";
 import type { AuthUser } from "../../users";
@@ -177,4 +180,14 @@ washRoutes.post("/wash/orders/:id/washed", async (c) => {
   const user = c.get("user");
   washerOnly(user.role);
   return json(c, serializeWash(await markWashed(user, c.req.param("id")), "washer"));
+});
+
+// ---- Delivery & payment ----
+courierAction("out", (u, id) => outForDelivery(u, id));
+courierAction("deliver", (u, id, b) => deliverWash(u, id, z.object({ cashReceived: z.number().int().min(0).max(100_000_000).nullable().default(null) }).parse(b).cashReceived));
+
+/** Client pays a confirmed order online. */
+washRoutes.post("/wash/orders/:id/pay", async (c) => {
+  const b = await body(c, z.object({ method: z.enum(["click", "payme", "card"]) }));
+  return json(c, { payment: await startWashPayment(c.req.param("id"), c.get("user"), b.method) });
 });

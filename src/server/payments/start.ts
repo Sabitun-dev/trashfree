@@ -10,7 +10,7 @@ import { bad } from "../errors";
 import type { OrderFull } from "../orders/serialize";
 import { getSettings, type AppSettings } from "../settings";
 import type { AuthUser } from "../users";
-import { findAccount, subAccountId, type Account } from "./accounts";
+import { findAccount, subAccountId, washAccountId, type Account } from "./accounts";
 import { paymentAvailable, providerFor, type ProviderName } from "./availability";
 import { clickCheckoutUrl } from "./click";
 import { paymeCheckoutUrl } from "./payme";
@@ -114,6 +114,24 @@ export async function startSubscriptionPayment(subId: number, user: AuthUser, me
     title: bt(lang, "sub_invoice_title", { plan: sub ? localName(sub, lang) : "" }),
     description: bt(lang, "sub_invoice_desc", { pickups: sub?.pickups ?? "" }),
     returnUrl: await appLink({ name: "plans" }),
+    settings,
+  });
+}
+
+/** Online payment for a confirmed carpet / curtain order (Click, Payme or card). */
+export async function startWashPayment(washOrderId: string, user: AuthUser, method: PaymentMethod): Promise<PaymentStart> {
+  const settings = await getSettings();
+  const provider = providerFor(method, settings);
+  if (!provider || !paymentAvailable(method, settings)) throw bad("payment_unavailable");
+  const account = await findAccount(washAccountId(washOrderId));
+  if (!account || !account.payable || account.userId !== user.id) throw bad("bad_status");
+  return getProvider(provider, settings).start({
+    account,
+    user,
+    method,
+    title: account.title,
+    description: account.title,
+    returnUrl: await appLink({ name: "wash_order", id: washOrderId }),
     settings,
   });
 }

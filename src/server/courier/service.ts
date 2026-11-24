@@ -87,18 +87,22 @@ export async function courierComplete(user: AuthUser, orderIds: string[], cashCo
 
 export async function courierToday(user: AuthUser, now = new Date()) {
   const start = tashkentInstant(tashkentDate(now), 0);
-  const [doneToday, cashToday, onlineToday, outstanding] = await Promise.all([
+  const [doneToday, cashToday, onlineToday, outstanding, wDone, wCashToday, wOutstanding] = await Promise.all([
     db().order.count({ where: { courierId: user.id, status: "completed", completedAt: { gte: start } } }),
     db().order.aggregate({ where: { courierId: user.id, status: "completed", completedAt: { gte: start }, paymentMethod: "cash" }, _sum: { cashCollected: true } }),
     db().order.aggregate({ where: { courierId: user.id, status: "completed", completedAt: { gte: start }, paymentStatus: "paid" }, _sum: { priceTotal: true }, _count: true }),
     db().order.aggregate({ where: { courierId: user.id, status: "completed", paymentMethod: "cash", cashHandoverId: null, cashCollected: { not: null } }, _sum: { cashCollected: true }, _count: true }),
+    // Carpet & curtain: deliveries and the cash the courier recorded himself (never the price).
+    db().washOrder.count({ where: { courierId: user.id, status: { in: ["delivered_paid", "closed"] }, statusAt: { gte: start } } }),
+    db().washOrder.aggregate({ where: { courierId: user.id, status: { in: ["delivered_paid", "closed"] }, statusAt: { gte: start }, cashCollected: { not: null } }, _sum: { cashCollected: true } }),
+    db().washOrder.aggregate({ where: { courierId: user.id, status: { in: ["delivered_paid", "closed"] }, cashHandoverId: null, cashCollected: { not: null } }, _sum: { cashCollected: true }, _count: true }),
   ]);
   return {
-    doneToday,
-    cashToday: cashToday._sum.cashCollected ?? 0,
+    doneToday: doneToday + wDone,
+    cashToday: (cashToday._sum.cashCollected ?? 0) + (wCashToday._sum.cashCollected ?? 0),
     onlineToday: onlineToday._sum.priceTotal ?? 0,
     onlineCount: onlineToday._count,
-    cashToHandOver: outstanding._sum.cashCollected ?? 0,
-    cashOrders: outstanding._count,
+    cashToHandOver: (outstanding._sum.cashCollected ?? 0) + (wOutstanding._sum.cashCollected ?? 0),
+    cashOrders: outstanding._count + wOutstanding._count,
   };
 }

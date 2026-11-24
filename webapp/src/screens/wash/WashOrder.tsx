@@ -8,7 +8,8 @@ import { dateTime, friendlyDate } from "../../lib/format";
 import { invalidate, setQueryData, useQuery } from "../../lib/query";
 import { useSession } from "../../lib/session";
 import { confirmDialog } from "../../lib/tg";
-import type { WashDTO } from "../../lib/types";
+import type { CreateOrderResult, WashDTO } from "../../lib/types";
+import { runPayment } from "../../lib/pay";
 import { CallButton } from "../../components/CallButton";
 import { PrivatePhoto } from "../../components/Photos";
 import { Icon } from "../../ui/Icon";
@@ -99,6 +100,29 @@ export function WashOrderScreen({ id }: { id: string }) {
           </Card>
         </Section>
       ) : null}
+
+      {mine && o.paymentStatus !== "paid" && o.paymentMethod && o.paymentMethod !== "cash" && ["client_confirmed", "picked_up", "at_washer", "washed", "out_for_delivery"].includes(o.status) && (
+        <Button
+          block
+          className="mt-3"
+          icon="card"
+          loading={busy}
+          onClick={async () => {
+            setBusy(true);
+            try {
+              const { payment } = await api.post<{ payment: CreateOrderResult["payment"] }>(`/wash/orders/${id}/pay`, { method: o.paymentMethod });
+              await runPayment(payment);
+              setTimeout(() => void q.refetch(), 1500);
+            } catch (e) {
+              toast(errorText(t, e instanceof ApiError ? e.code : undefined), "error");
+            } finally {
+              setBusy(false);
+            }
+          }}
+        >
+          {t("wash_pay")} · {t.som(o.money?.total ?? 0)}
+        </Button>
+      )}
 
       {o.courier && o.status !== "created" && o.status !== "cancelled" && (
         <Card className="mt-3 flex items-center gap-3">

@@ -12,7 +12,7 @@ import { catalog } from "../catalog";
 
 export interface Account {
   id: string;
-  kind: "order" | "subscription";
+  kind: "order" | "subscription" | "wash";
   refId: string | number;
   userId: number;
   amount: number; // so'm
@@ -23,6 +23,9 @@ export interface Account {
 }
 
 export const subAccountId = (subId: number) => `s${subId}`;
+/** Carpet/curtain orders: "w" + order id (trash order ids are cuids and always start with "c"). */
+export const washAccountId = (washOrderId: string) => `w${washOrderId}`;
+const WASH_PAYABLE = ["client_confirmed", "picked_up", "at_washer", "washed", "out_for_delivery"];
 
 export async function findAccount(accountId: string, now = new Date()): Promise<Account | null> {
   if (/^s\d+$/.test(accountId)) {
@@ -37,6 +40,20 @@ export async function findAccount(accountId: string, now = new Date()): Promise<
       payable: sub.status === "pending",
       paid: sub.status === "active" || sub.status === "expired",
       title: `Trashfree: ${sub.plan.nameUz}`,
+    };
+  }
+  if (/^w[a-z0-9]{10,40}$/i.test(accountId)) {
+    const w = await db().washOrder.findUnique({ where: { id: accountId.slice(1) } });
+    if (!w || !w.total) return null;
+    return {
+      id: accountId,
+      kind: "wash",
+      refId: w.id,
+      userId: w.customerId,
+      amount: w.total,
+      payable: WASH_PAYABLE.includes(w.status) && w.paymentStatus !== "paid",
+      paid: w.paymentStatus === "paid",
+      title: `Trashfree ${w.service === "carpet" ? "G" : "P"}-${w.number}`,
     };
   }
   if (!/^[a-z0-9]{10,40}$/i.test(accountId)) return null;
@@ -59,6 +76,20 @@ export async function receiptItems(account: Account) {
   if (account.kind === "subscription") {
     const sub = await db().subscription.findUnique({ where: { id: Number(account.refId) }, include: { plan: true } });
     return [{ title: `Obuna: ${sub?.plan.nameUz ?? ""}`, price: account.amount, count: 1, code: "", package_code: "", vat_percent: 0 }];
+  }
+  if (account.kind === "wash") {
+    // Lines add up exactly to the total: each item, the minimum-order top-up, delivery.
+    const w = await db().washOrder.findUnique({ where: { id: String(account.refId) }, include: { quotes: { orderBy: { version: "desc" }, take: 1 } } });
+    const q = w?.quotes[0];
+    if (!w || !q) return [];
+    const name = w.service === "carpet" ? "Gilam yuvish" : "Parda yuvish";
+    const prefix = w.service === "carpet" ? "G" : "P";
+    const lines = q.lines as unknown as { areaTenths: number; amount: number }[];
+    const items = lines.map((l, i) => ({ title: `${name} ${prefix}-${w.number}-${i + 1} (${(l.areaTenths / 10).toFixed(1)} m²)`, price: l.amount, count: 1, code: "", package_code: "", vat_percent: 0 }));
+    const charged = q.total - q.deliveryFee;
+    if (q.minimumApplied && charged > q.subtotal) items.push({ title: "Minimal buyurtma", price: charged - q.subtotal, count: 1, code: "", package_code: "", vat_percent: 0 });
+    if (q.deliveryFee > 0) items.push({ title: "Yetkazib berish", price: q.deliveryFee, count: 1, code: "", package_code: "", vat_percent: 0 });
+    return items;
   }
   const o = await db().order.findUnique({ where: { id: String(account.refId) }, include: { trashType: true, packageSize: true } });
   if (!o) return [];
@@ -95,6 +126,7 @@ export async function settlePayment(paymentId: string, raw?: unknown): Promise<b
     });
     let opened = false;
     if (p.orderId) opened = await applyToOrder(tx, p.orderId);
+    if (p.washOrderId) await tx.washOrder.updateMany({ where: { id: p.washOrderId }, data: { paymentStatus: "paid" } });
     if (p.subscriptionId) await activateSubscription(tx, p.subscriptionId, now);
     return { p, opened };
   });
@@ -137,6 +169,10 @@ async function afterSettle(paymentId: string, opened: boolean) {
     if (o) item = `#${o.number} · ${type ? localName(type, lang) : ""} × ${o.quantity}`;
     if (o && opened) await notifyCouriersNewOrder(o);
   }
+  if (p.washOrderId) {
+    const w = await db().washOrder.findUnique({ where: { id: p.washOrderId } });
+    if (w) item = `${w.service === "carpet" ? "G" : "P"}-${w.number}`;
+  }
   if (p.subscription) {
     item = localName(p.subscription.plan, lang);
     const until = p.subscription.periodEnd?.toISOString().slice(0, 10).split("-").reverse().join(".") ?? "";
@@ -146,7 +182,7 @@ async function afterSettle(paymentId: string, opened: boolean) {
     userId: p.userId,
     type: "payment_paid",
     params: { receipt: p.receiptNo ?? "", item, total: som(p.amount), method: bt(lang, `method_${p.method}`) },
-    screen: p.orderId ? { name: "order", id: p.orderId } : { name: "plans" },
+    screen: p.orderId ? { name: "order", id: p.orderId } : p.washOrderId ? { name: "wash_order", id: p.washOrderId } : { name: "plans" },
     dedupKey: `paid:${p.id}`,
   });
 }

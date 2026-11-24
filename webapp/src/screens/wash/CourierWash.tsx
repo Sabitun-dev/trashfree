@@ -190,6 +190,8 @@ export function CourierWash({ id }: { id: string }) {
             <MainButton text={t("wc_pickup")} loading={busy} onClick={() => act("pickup", {}, t("done"))} />
           </>
         )}
+        {o.status === "washed" && <MainButton text={t("wc_out")} loading={busy} onClick={() => act("out", {}, t("done"))} />}
+        {o.status === "out_for_delivery" && <Deliver order={o} busy={busy} onDeliver={(cashReceived) => act("deliver", { cashReceived }, t("celebrate"))} />}
         {o.status === "picked_up" && <HandOver busy={busy} onPick={(washerId) => act("handover", { washerId }, t("done"))} />}
         {o.status === "courier_assigned" && (
           <Button block variant="ghost" onClick={() => act("give-back", {}, t("done"))}>
@@ -198,6 +200,29 @@ export function CourierWash({ id }: { id: string }) {
         )}
       </div>
     </Page>
+  );
+}
+
+/** Delivered: the courier records the cash he received (he never sees the price). */
+function Deliver({ order, busy, onDeliver }: { order: WashDTO; busy: boolean; onDeliver: (cash: number | null) => void }) {
+  const t = useT();
+  const [cash, setCash] = useState("");
+  const paid = order.paymentStatus === "paid";
+  const value = Number(cash.replace(/\D/g, ""));
+  return (
+    <Section>
+      {paid ? (
+        <Card className="flex items-center gap-2 bg-accent-soft font-semibold text-accent-ink">
+          <Icon name="check" /> {t("wc_paid_online")}
+        </Card>
+      ) : (
+        <label className="block text-[15px] font-medium text-hint">
+          {t("wc_cash_received")}
+          <input inputMode="numeric" className={inputCls + " mt-1 text-[24px] font-bold"} value={cash} placeholder="0" onChange={(e) => setCash(e.target.value.replace(/[^\d ]/g, ""))} />
+        </label>
+      )}
+      <MainButton text={t("wc_deliver")} disabled={!paid && !cash.trim()} loading={busy} onClick={() => onDeliver(paid ? null : value)} />
+    </Section>
   );
 }
 

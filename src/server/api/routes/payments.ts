@@ -45,7 +45,7 @@ paymentRoutes.get("/receipt", async (c) => {
     orderBy: { paidAt: "desc" },
   });
   if (!p || (p.userId !== user.id && !isAdmin(user.role))) throw notFound();
-  const account = await findAccount(p.orderId ?? `s${p.subscriptionId}`);
+  const account = await findAccount(p.orderId ?? (p.washOrderId ? `w${p.washOrderId}` : `s${p.subscriptionId}`));
   const items = account ? await receiptItems(account) : [];
   const order = p.orderId ? await db().order.findUnique({ where: { id: p.orderId }, select: { number: true } }) : null;
   return json(c, {

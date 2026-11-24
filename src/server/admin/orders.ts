@@ -156,20 +156,29 @@ export async function outstandingCash() {
     _sum: { cashCollected: true },
     _count: true,
   });
-  const users = await db().user.findMany({ where: { id: { in: rows.map((r) => r.courierId!) } }, select: { id: true, name: true, phone: true } });
-  return rows.map((r) => ({ courier: users.find((u) => u.id === r.courierId)!, amount: r._sum.cashCollected ?? 0, orders: r._count })).sort((a, b) => b.amount - a.amount);
+  const wash = await db().washOrder.groupBy({ by: ["courierId"], where: { courierId: { not: null }, status: { in: ["delivered_paid", "closed"] }, cashHandoverId: null, cashCollected: { not: null } }, _sum: { cashCollected: true }, _count: true });
+  // Trash and carpet/curtain cash per courier, added together.
+  const totals = new Map<number, { amount: number; orders: number }>();
+  for (const r of [...rows, ...wash]) {
+    const cur = totals.get(r.courierId!) ?? { amount: 0, orders: 0 };
+    totals.set(r.courierId!, { amount: cur.amount + (r._sum.cashCollected ?? 0), orders: cur.orders + r._count });
+  }
+  const users = await db().user.findMany({ where: { id: { in: [...totals.keys()] } }, select: { id: true, name: true, phone: true } });
+  return [...totals.entries()].map(([id, v]) => ({ courier: users.find((u) => u.id === id)!, ...v })).sort((a, b) => b.amount - a.amount);
 }
 
 /** "Naqd topshirildi": the admin confirms the exact amount they received. Audit-logged. */
 export async function confirmHandover(admin: AuthUser, courierId: number, amount: number) {
   const result = await db().$transaction(async (tx) => {
     const orders = await tx.order.findMany({ where: { courierId, paymentMethod: "cash", status: "completed", cashHandoverId: null, cashCollected: { not: null } }, select: { id: true, cashCollected: true } });
-    const total = orders.reduce((s, o) => s + (o.cashCollected ?? 0), 0);
-    if (!orders.length) throw conflict("bad_status");
+    const washOrders = await tx.washOrder.findMany({ where: { courierId, status: { in: ["delivered_paid", "closed"] }, cashHandoverId: null, cashCollected: { not: null } }, select: { id: true, cashCollected: true } });
+    const total = [...orders, ...washOrders].reduce((s, o) => s + (o.cashCollected ?? 0), 0);
+    if (!orders.length && !washOrders.length) throw conflict("bad_status");
     if (total !== amount) throw conflict("bad_status", { amount: total });
     const h = await tx.cashHandover.create({ data: { courierId, amount: total, confirmedById: admin.id } });
     await tx.order.updateMany({ where: { id: { in: orders.map((o) => o.id) }, cashHandoverId: null }, data: { cashHandoverId: h.id } });
-    await audit({ actorId: admin.id, action: "cash.handover", entity: "user", entityId: courierId, after: { amount: total, orders: orders.length, handoverId: h.id } }, tx);
+    await tx.washOrder.updateMany({ where: { id: { in: washOrders.map((o) => o.id) }, cashHandoverId: null }, data: { cashHandoverId: h.id } });
+    await audit({ actorId: admin.id, action: "cash.handover", entity: "user", entityId: courierId, after: { amount: total, orders: orders.length, washOrders: washOrders.length, handoverId: h.id } }, tx);
     return h;
   });
   await notify({ userId: courierId, type: "cash_handover", params: { total: `${result.amount.toLocaleString("ru-RU").replace(/ /g, " ")} so'm` }, screen: { name: "courier" }, dedupKey: `handover:${result.id}` });

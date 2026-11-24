@@ -14,7 +14,7 @@ export type PreCheckoutVerdict = { ok: true } | { ok: false; reason: "pay_expire
 export async function checkPreCheckout(paymentId: string, currency: string, totalAmount: number, now = new Date()): Promise<PreCheckoutVerdict> {
   const p = await db().payment.findUnique({ where: { id: paymentId } });
   if (!p || p.status !== "created") return { ok: false, reason: "pay_expired_answer" };
-  const account = await findAccount(p.orderId ?? `s${p.subscriptionId}`, now);
+  const account = await findAccount(p.orderId ?? (p.washOrderId ? `w${p.washOrderId}` : `s${p.subscriptionId}`), now);
   if (!account || !account.payable) return { ok: false, reason: "pay_expired_answer" };
   if (currency !== "UZS" || totalAmount !== somToTiyin(account.amount) || p.amount !== account.amount) return { ok: false, reason: "pay_amount_answer" };
   return { ok: true };

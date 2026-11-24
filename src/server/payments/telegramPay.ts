@@ -29,6 +29,7 @@ export async function createTelegramInvoice(opts: {
       userId: opts.userId,
       orderId: opts.account.kind === "order" ? String(opts.account.refId) : null,
       subscriptionId: opts.account.kind === "subscription" ? Number(opts.account.refId) : null,
+      washOrderId: opts.account.kind === "wash" ? String(opts.account.refId) : null,
       provider: `telegram_${opts.provider}`,
       method: opts.method === "subscription" ? opts.provider : opts.method,
       amount: opts.account.amount,

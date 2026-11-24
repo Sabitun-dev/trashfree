@@ -8,8 +8,15 @@ import type { PaymeStore, PaymeTx } from "./payme";
 
 type PaymentRow = Awaited<ReturnType<ReturnType<typeof db>["payment"]["findFirst"]>> & {};
 
-const accountOf = (p: { orderId: string | null; subscriptionId: number | null }) => p.orderId ?? `s${p.subscriptionId}`;
-const accountWhere = (accountId: string) => (/^s\d+$/.test(accountId) ? { subscriptionId: Number(accountId.slice(1)) } : { orderId: accountId });
+// Accounts: trash order id, "s<subscription id>", or "w<wash order id>".
+const accountOf = (p: { orderId: string | null; subscriptionId: number | null; washOrderId?: string | null }) =>
+  p.orderId ?? (p.washOrderId ? `w${p.washOrderId}` : `s${p.subscriptionId}`);
+const accountWhere = (accountId: string) =>
+  /^s\d+$/.test(accountId)
+    ? { subscriptionId: Number(accountId.slice(1)) }
+    : /^w[a-z0-9]{10,40}$/i.test(accountId)
+      ? { washOrderId: accountId.slice(1) }
+      : { orderId: accountId };
 const raw = (x: unknown) => JSON.parse(JSON.stringify(x ?? null));
 
 function toPaymeTx(p: NonNullable<PaymentRow>): PaymeTx {
