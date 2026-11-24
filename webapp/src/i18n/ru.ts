@@ -301,6 +301,7 @@ export const ru: Dict = {
   n_wash_picked: "Вещи забрали: {num}",
   n_wash_cancelled: "Заказ {num} отменён",
   n_wash_status: "Заказ {num}: {status}",
+  n_wash_courier_washed: "Стирка готова: {num} — заберите и доставьте",
   n_admin_alert: "⚠️ {text}",
 
   c_new_empty: "Новых заказов пока нет",

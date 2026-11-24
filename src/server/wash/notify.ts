@@ -128,3 +128,16 @@ export async function notifyWasherNewItems(o: WashOrderFull) {
   if (!o.washerId) return;
   await notify({ userId: o.washerId, type: "wash_status", params: { num: num(o), status: "at_washer" }, text: bt(await langOf(o.washerId), "wash_washer_new", { num: num(o), count: o.items.length }), screen: screen(o), dedupKey: `wwasher:${o.id}:${o.washerId}` });
 }
+
+/** Washing finished: the order's courier is told to collect the items from the washer and deliver them. */
+export async function notifyCourierWashed(o: WashOrderFull) {
+  if (!o.courierId) return;
+  const lang = await langOf(o.courierId);
+  await notify({
+    userId: o.courierId,
+    type: "wash_courier_washed",
+    params: { svc: bt(lang, svcKey(o.service)), num: num(o), washer: o.washer?.name ?? "—" },
+    screen: screen(o),
+    dedupKey: `wwashed:${o.id}`,
+  });
+}

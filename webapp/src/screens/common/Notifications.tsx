@@ -40,6 +40,7 @@ const ICON: Record<string, string> = {
   wash_picked: "truck",
   wash_cancelled: "x",
   wash_status: "sparkle",
+  wash_courier_washed: "truck",
   admin_alert: "alert",
 };
 

@@ -37,6 +37,7 @@ export type NotificationType =
   | "wash_picked"
   | "wash_cancelled"
   | "wash_status"
+  | "wash_courier_washed"
   | "admin_alert";
 
 const CATEGORY: Partial<Record<NotificationType, MutableCategory>> = {

@@ -313,6 +313,7 @@ export const uz = {
   n_wash_picked: "Buyumlar olib ketildi: {num}",
   n_wash_cancelled: "Buyurtma {num} bekor qilindi",
   n_wash_status: "Buyurtma {num}: {status}",
+  n_wash_courier_washed: "Yuvish tugadi: {num} — olib, yetkazing",
   n_admin_alert: "⚠️ {text}",
 
   // courier

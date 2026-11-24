@@ -29,7 +29,7 @@ import { bad, conflict, forbidden, notFound, tooMany } from "../errors";
 import { assertServiceOpen } from "../services";
 import { getSettings } from "../settings";
 import type { AuthUser } from "../users";
-import { alertAdmins, notifyQuoteAnswer, notifyWashAssigned, notifyWashCancelled, notifyWashPicked, notifyWashPlaced, notifyWashStatus, notifyWasherNewItems, sendQuoteToClient } from "./notify";
+import { alertAdmins, notifyQuoteAnswer, notifyWashAssigned, notifyWashCancelled, notifyWashPicked, notifyWashPlaced, notifyWashStatus, notifyWasherNewItems, notifyCourierWashed, sendQuoteToClient } from "./notify";
 import { serializeWash, washInclude, washViewFor, type WashOrderFull } from "./serialize";
 import { currentWashSettings, toPricing } from "./settings";
 
@@ -400,6 +400,7 @@ export async function markWashed(user: AuthUser, id: string) {
   if (!ok) throw conflict("bad_status");
   const full = (await loadWash(id))!;
   await notifyWashStatus(full, "washed");
+  await notifyCourierWashed(full);
   return full;
 }
 

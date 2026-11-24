@@ -301,6 +301,7 @@ export const en: Dict = {
   n_wash_picked: "Items picked up: {num}",
   n_wash_cancelled: "Order {num} cancelled",
   n_wash_status: "Order {num}: {status}",
+  n_wash_courier_washed: "Washing finished: {num} — pick up and deliver",
   n_admin_alert: "⚠️ {text}",
 
   c_new_empty: "No new orders right now",
