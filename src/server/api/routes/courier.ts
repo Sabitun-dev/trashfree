@@ -42,7 +42,15 @@ courierRoutes.get("/courier/counts", async (c) => {
       : Promise.resolve(0),
     db().order.count({ where: { courierId: user.id, status: { in: ["accepted", "on_the_way"] } } }),
   ]);
-  return json(c, { new: fresh, mine });
+  // Carpet & curtain orders count too, for couriers who handle them.
+  const washServices = isAdmin(user.role) ? (["carpet", "curtain"] as const) : user.services.filter((s): s is "carpet" | "curtain" => s !== "trash");
+  const [wNew, wMine] = washServices.length
+    ? await Promise.all([
+        db().washOrder.count({ where: { status: "created", service: { in: [...washServices] }, ...(cityIds ? { cityId: { in: cityIds } } : {}) } }),
+        db().washOrder.count({ where: { courierId: user.id, status: { in: ["courier_assigned", "measured", "quote_sent", "client_confirmed", "picked_up", "washed", "out_for_delivery"] } } }),
+      ])
+    : [0, 0];
+  return json(c, { new: fresh + wNew, mine: mine + wMine });
 });
 
 courierRoutes.get("/courier/today", async (c) => json(c, await courierToday(c.get("user"))));

@@ -4,7 +4,8 @@ import { useT } from "../../i18n";
 import { api } from "../../lib/api";
 import { useQuery } from "../../lib/query";
 import { useNav } from "../../lib/router";
-import type { OrderDTO } from "../../lib/types";
+import type { OrderDTO, WashDTO } from "../../lib/types";
+import { WashOrderCard } from "../wash/parts";
 import { OrderCard } from "../../components/OrderCard";
 import { Button, EmptyState, ErrorState, Segmented, SkeletonList } from "../../ui/kit";
 import { Page } from "../../ui/layout";
@@ -16,6 +17,7 @@ export function Orders() {
   const t = useT();
   const nav = useNav();
   const [filter, setFilter] = useState<F>("active");
+  const wq = useQuery<WashDTO[]>(`wash:list:${filter}`, () => api.get(`/wash/orders?filter=${filter}`), { refreshMs: filter === "active" ? 20_000 : undefined });
   const q = useQuery<OrderDTO[]>(`orders:${filter}`, () => api.get(`/orders?filter=${filter}`), { refreshMs: filter === "active" ? 20_000 : undefined });
   return (
     <Page title={t("my_orders")} hasTabBar>
@@ -33,7 +35,7 @@ export function Orders() {
           <SkeletonList n={3} h="h-32" />
         ) : q.error ? (
           <ErrorState text={t("err_network")} onRetry={q.refetch} retryLabel={t("retry")} />
-        ) : !q.data?.length ? (
+        ) : !q.data?.length && !wq.data?.length ? (
           <EmptyState
             icon="list"
             title={t("no_orders")}
@@ -52,7 +54,10 @@ export function Orders() {
           />
         ) : (
           <div className="space-y-3">
-            {q.data.map((o) => (
+            {wq.data?.map((o) => (
+              <WashOrderCard key={o.id} order={o} tracker={filter === "active"} onClick={() => nav.push("wash_order", { id: o.id })} />
+            ))}
+            {q.data?.map((o) => (
               <OrderCard key={o.id} order={o} tracker={filter === "active"} onClick={() => nav.push("order", { id: o.id })} />
             ))}
           </div>

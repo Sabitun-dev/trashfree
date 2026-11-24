@@ -8,7 +8,8 @@ import { loadLeaflet } from "../../lib/leaflet";
 import { useNav } from "../../lib/router";
 import { useSession } from "../../lib/session";
 import { haptic, openTelegramLink } from "../../lib/tg";
-import type { OrderDTO } from "../../lib/types";
+import type { OrderDTO, WashDTO } from "../../lib/types";
+import { WashOrderCard } from "../wash/parts";
 import { OrderCard } from "../../components/OrderCard";
 import { Icon } from "../../ui/Icon";
 import { Card, ErrorState, IconButton, Section, SkeletonList } from "../../ui/kit";
@@ -23,6 +24,7 @@ export function Home() {
   const nav = useNav();
   const s = useSession();
   const active = useQuery<OrderDTO[]>("orders:active", () => api.get("/orders?filter=active"), { refreshMs: 20_000 });
+  const washActive = useQuery<WashDTO[]>("wash:active", () => api.get("/wash/orders?filter=active"), { refreshMs: 20_000 });
   const last = useQuery<(OrderDTO & { trashTypeCode: string; packageSizeCode: string }) | null>("orders:last", () => api.get("/orders/last"));
   const sub = s.subscription;
   const firstName = s.me.name.split(" ")[0];
@@ -83,9 +85,12 @@ export function Home() {
           <SkeletonList n={2} h="h-40" />
         ) : active.error ? (
           <ErrorState text={t("err_network")} onRetry={active.refetch} retryLabel={t("retry")} />
-        ) : active.data?.length ? (
+        ) : active.data?.length || washActive.data?.length ? (
           <div className="space-y-3">
-            {active.data.map((o) => (
+            {washActive.data?.map((o) => (
+              <WashOrderCard key={o.id} order={o} onClick={() => nav.push("wash_order", { id: o.id })} />
+            ))}
+            {active.data?.map((o) => (
               <OrderCard key={o.id} order={o} onClick={() => nav.push("order", { id: o.id })} />
             ))}
           </div>

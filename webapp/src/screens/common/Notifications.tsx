@@ -31,6 +31,16 @@ const ICON: Record<string, string> = {
   new_order: "bell",
   cash_handover: "cash",
   broadcast: "megaphone",
+  wash_placed: "clipboard",
+  wash_new: "bell",
+  wash_assigned: "hand",
+  wash_quote: "receipt",
+  wash_courier_confirmed: "check",
+  wash_courier_declined: "x",
+  wash_picked: "truck",
+  wash_cancelled: "x",
+  wash_status: "sparkle",
+  admin_alert: "alert",
 };
 
 export function Notifications() {
@@ -63,6 +73,10 @@ export function Notifications() {
         return id && nav.push("order", { id });
       case "courier_order":
         return id && nav.push("c_order", { id });
+      case "wash_order":
+        return id && nav.push(s.mode === "courier" ? "c_wash" : "wash_order", { id });
+      case "admin":
+        return nav.push("a_dash");
       case "plans":
         return nav.push("plans");
       case "courier":

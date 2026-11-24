@@ -3,6 +3,7 @@
 export type Screen =
   | { name: "home" }
   | { name: "order"; id: string }
+  | { name: "wash_order"; id: string }
   | { name: "courier" }
   | { name: "courier_order"; id: string }
   | { name: "plans" }
@@ -23,6 +24,9 @@ export function encodeStartParam(s: Screen): string {
       break;
     case "courier_order":
       p = `corder_${s.id}`;
+      break;
+    case "wash_order":
+      p = `wo_${s.id}`;
       break;
     case "invite":
       p = `inv_${s.token}`;
@@ -46,6 +50,8 @@ export function decodeStartParam(p: string | null | undefined): Screen {
       return tail ? { name: "order", id: tail } : { name: "home" };
     case "corder":
       return tail ? { name: "courier_order", id: tail } : { name: "courier" };
+    case "wo":
+      return tail ? { name: "wash_order", id: tail } : { name: "home" };
     case "inv":
       return tail ? { name: "invite", token: tail } : { name: "home" };
     case "auser":

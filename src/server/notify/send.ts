@@ -27,10 +27,21 @@ export type NotificationType =
   | "rate_ask"
   | "new_order"
   | "cash_handover"
-  | "broadcast";
+  | "broadcast"
+  | "wash_placed"
+  | "wash_new"
+  | "wash_assigned"
+  | "wash_quote"
+  | "wash_courier_confirmed"
+  | "wash_courier_declined"
+  | "wash_picked"
+  | "wash_cancelled"
+  | "wash_status"
+  | "admin_alert";
 
 const CATEGORY: Partial<Record<NotificationType, MutableCategory>> = {
   new_order: "new_orders",
+  wash_new: "new_orders",
   rate_ask: "reminders",
   sub_expiring: "reminders",
   sub_expires_today: "reminders",
@@ -55,6 +66,8 @@ export interface NotifyInput {
   text?: string;
   /** Store in the bell only, no bot message. */
   silent?: boolean;
+  /** Buttons that answer inside the chat (e.g. confirm / decline a quote): [text key, callback data ≤ 64 bytes]. */
+  callbackButtons?: { key: TextKey; data: string }[];
 }
 
 export async function notify(n: NotifyInput): Promise<"sent" | "muted" | "duplicate" | "blocked" | "failed" | "silent"> {
@@ -89,6 +102,10 @@ async function sendBotMessage(chatId: bigint, lang: string, n: NotifyInput): Pro
   const text = n.text ?? bt(lang, n.type as TextKey, n.params ?? {});
   const kb = new InlineKeyboard().url(bt(lang, "open"), await appLink(n.screen));
   for (const b of n.extraButtons ?? []) kb.row().url(bt(lang, b.key), await appLink(b.screen));
+  if (n.callbackButtons?.length) {
+    kb.row();
+    for (const b of n.callbackButtons) kb.text(bt(lang, b.key), b.data);
+  }
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
       if (n.photoBlobKey) {

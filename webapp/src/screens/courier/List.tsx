@@ -7,7 +7,8 @@ import { useQuery } from "../../lib/query";
 import { useNav } from "../../lib/router";
 import { useSession } from "../../lib/session";
 import { openTelegramLink } from "../../lib/tg";
-import type { OrderDTO } from "../../lib/types";
+import type { OrderDTO, WashDTO } from "../../lib/types";
+import { CourierWashCard } from "../wash/CourierWash";
 import { Icon } from "../../ui/Icon";
 import { openSupport } from "../common/Profile";
 import { Button, EmptyState, ErrorState, IconButton, Segmented, SkeletonList } from "../../ui/kit";
@@ -27,6 +28,7 @@ export function CourierList() {
   const [selected, setSelected] = useState<string[]>([]);
   const [sheet, setSheet] = useState<OrderDTO[] | null>(null);
   const [party, setParty] = useState(false);
+  const wq = useQuery<WashDTO[]>(`courier:wash:${tab}`, () => api.get(`/wash/courier?tab=${tab}`), { refreshMs: tab === "done" ? undefined : 15_000 });
   const q = useQuery<OrderDTO[]>(`courier:${tab}`, () => api.get(`/courier/orders?tab=${tab}`), { refreshMs: tab === "done" ? undefined : 15_000 });
   const counts = useQuery<{ new: number; mine: number }>("courier:counts", () => api.get("/courier/counts"), { refreshMs: 15_000 });
   const actions = useCourierActions();
@@ -97,10 +99,12 @@ export function CourierList() {
           <SkeletonList n={3} h="h-44" />
         ) : q.error ? (
           <ErrorState text={t("err_network")} onRetry={q.refetch} retryLabel={t("retry")} />
-        ) : !list.length ? (
+        ) : !list.length && !wq.data?.length ? (
           <EmptyState icon={tab === "new" ? "truck" : tab === "mine" ? "hand" : "sparkle"} title={t(tab === "new" ? "c_new_empty" : tab === "mine" ? "c_mine_empty" : "c_done_empty")} text={tab === "new" ? t("c_new_empty_hint") : undefined} />
         ) : (
-          list.map((o) => (
+          <>
+          {!selecting && wq.data?.map((w) => <CourierWashCard key={w.id} order={w} onOpen={() => nav.push("c_wash", { id: w.id })} />)}
+          {list.map((o) => (
             <CourierOrderCard
               key={o.id}
               order={o}
@@ -132,7 +136,8 @@ export function CourierList() {
                 </div>
               )}
             </CourierOrderCard>
-          ))
+          ))}
+          </>
         )}
       </div>
 

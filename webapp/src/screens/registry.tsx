@@ -19,6 +19,11 @@ const CourierMap = lazy(() => courier().then((m) => ({ default: m.CourierMap }))
 const CourierToday = lazy(() => courier().then((m) => ({ default: m.CourierToday })));
 const CourierOrderScreen = lazy(() => courier().then((m) => ({ default: m.CourierOrderScreen })));
 
+const wash = () => import("./wash");
+const WashNew = lazy(() => wash().then((m) => ({ default: m.WashNew })));
+const WashOrderScreen = lazy(() => wash().then((m) => ({ default: m.WashOrderScreen })));
+const CourierWash = lazy(() => wash().then((m) => ({ default: m.CourierWash })));
+
 const admin = () => import("./admin");
 const A = (name: keyof Awaited<ReturnType<typeof admin>>) => lazy(() => admin().then((m) => ({ default: m[name] as ComponentType<any> })));
 
@@ -36,6 +41,9 @@ export const SCREENS: Record<string, ComponentType<any>> = {
   notifications: Notifications,
   invite: Invite,
   support: Support,
+  wash_new: WashNew,
+  wash_order: WashOrderScreen,
+  c_wash: CourierWash,
   c_list: CourierList,
   c_order: CourierOrderScreen,
   c_map: CourierMap,

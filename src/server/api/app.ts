@@ -7,6 +7,7 @@ import { meRoutes } from "./routes/me";
 import { notificationRoutes } from "./routes/notifications";
 import { paymentRoutes } from "./routes/payments";
 import { subscriptionRoutes } from "./routes/subscriptions";
+import { washRoutes } from "./routes/wash";
 
 export function buildApi() {
   const app = createApp().basePath("/api");
@@ -19,5 +20,6 @@ export function buildApi() {
   app.route("/", paymentRoutes);
   app.route("/", subscriptionRoutes);
   app.route("/", adminRoutes);
+  app.route("/", washRoutes);
   return app;
 }

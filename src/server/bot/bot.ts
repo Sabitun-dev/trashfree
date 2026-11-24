@@ -6,6 +6,7 @@ import { safeLog } from "../errors";
 import { normalizePhone, upsertTelegramUser, type AuthUser } from "../users";
 import { registerPaymentHandlers } from "../payments/telegramBot";
 import { registerSupportHandlers } from "../support/relay";
+import { registerWashHandlers } from "../wash/bot";
 import { appLink } from "./telegram";
 import { bt } from "./texts";
 import { InlineKeyboard } from "grammy";
@@ -70,6 +71,7 @@ export async function getBot(): Promise<Bot<BotCtx>> {
   });
 
   registerPaymentHandlers(b);
+  registerWashHandlers(b);
   registerSupportHandlers(b);
 
   b.catch((err) => safeLog("Bot handler error", err.error));

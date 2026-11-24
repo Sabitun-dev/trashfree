@@ -102,6 +102,10 @@ function initialRoutes(startParam: string | null, me: Me): { mode?: Mode; routes
   switch (s.name) {
     case "order":
       return { mode: "customer", routes: [{ name: "home" }, { name: "order", params: { id: s.id } }] };
+    case "wash_order":
+      if (me.role === "courier") return { mode: "courier", routes: [{ name: "c_list" }, { name: "c_wash", params: { id: s.id } }] };
+      if (modes.includes("admin")) return { mode: "admin", routes: [{ name: "a_dash" }, { name: "wash_order", params: { id: s.id } }] };
+      return { mode: "customer", routes: [{ name: "home" }, { name: "wash_order", params: { id: s.id } }] };
     case "courier_order":
       return modes.includes("courier") ? { mode: "courier", routes: [{ name: "c_list" }, { name: "c_order", params: { id: s.id } }] } : { routes: [] };
     case "courier":

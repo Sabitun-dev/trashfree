@@ -11,8 +11,8 @@ import { cx } from "../../ui/kit";
 
 type Svc = Bootstrap["services"][number];
 
-/** The carpet/curtain ordering screens ship in a later commit; until then their buttons stay hidden. */
-export const WASH_FLOW_READY = false;
+/** Carpet/curtain ordering is available (each service still needs to be switched on by the admin). */
+export const WASH_FLOW_READY = true;
 
 const META = {
   trash: { label: "svc_trash", sub: "svc_trash_sub", icon: "trash" },

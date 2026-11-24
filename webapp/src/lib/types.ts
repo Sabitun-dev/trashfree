@@ -182,3 +182,80 @@ export interface AddressDTO {
   lng: number;
   notes: string | null;
 }
+
+// ---------- Carpet & curtain washing ----------
+export type WashService = "carpet" | "curtain";
+export type WashStatus =
+  | "created"
+  | "courier_assigned"
+  | "measured"
+  | "quote_sent"
+  | "client_confirmed"
+  | "picked_up"
+  | "at_washer"
+  | "washed"
+  | "out_for_delivery"
+  | "delivered_paid"
+  | "closed"
+  | "cancelled";
+
+export interface WashItemDTO {
+  id: number;
+  position: number;
+  label: string;
+  type: WashService;
+  lengthCm: number | null;
+  widthCm: number | null;
+  areaTenths: number | null;
+  washerLengthCm: number | null;
+  washerWidthCm: number | null;
+  washerAreaTenths: number | null;
+}
+
+/** Money is filtered on the server: null for couriers; washer share only for washers. */
+export interface WashMoney {
+  lines?: { lengthCm: number; widthCm: number; areaTenths: number; amount: number }[];
+  subtotal?: number;
+  minimumApplied?: boolean;
+  deliveryFee?: number;
+  total?: number;
+  quoteStatus?: string;
+  washerPayout?: number | null;
+  courierPay?: number | null;
+  waiveDelivery?: boolean;
+  waiveReason?: string | null;
+  cashCollected?: number | null;
+  margin?: number;
+}
+
+export interface WashDTO {
+  kind: "wash";
+  id: string;
+  number: number;
+  displayNumber: string;
+  service: WashService;
+  status: WashStatus;
+  statusAt: string;
+  cityId: number;
+  address: string | null;
+  lat: number | null;
+  lng: number | null;
+  notes: string | null;
+  pickupDate: string;
+  slotStart: number;
+  slotEnd: number;
+  quoteVersion: number;
+  onHold: boolean;
+  needsApproval: boolean;
+  paymentMethod: string | null;
+  paymentStatus: string;
+  createdAt: string;
+  cancelReason: string | null;
+  photos: { id: string; kind: string }[];
+  customer: PersonDTO | null;
+  courier: PersonDTO | null;
+  washer: PersonDTO | null;
+  timeline: { to: WashStatus; at: string }[];
+  items: WashItemDTO[];
+  money: WashMoney | null;
+}
