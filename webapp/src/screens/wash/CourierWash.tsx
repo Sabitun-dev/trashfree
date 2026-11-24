@@ -6,7 +6,10 @@ import { formatSlot } from "@domain/time";
 import { errorText, useT } from "../../i18n";
 import { api, ApiError } from "../../lib/api";
 import { MainButton } from "../../lib/buttons";
-import { friendlyDate } from "../../lib/format";
+import { friendlyDate, km } from "../../lib/format";
+import { distanceKm } from "@domain/geo";
+import { MapView } from "../../components/Maps";
+import { useMyLocation } from "../courier/shared";
 import { invalidate, setQueryData, useQuery } from "../../lib/query";
 import { useNav } from "../../lib/router";
 import { haptic, openLink } from "../../lib/tg";
@@ -38,6 +41,7 @@ export function CourierWash({ id }: { id: string }) {
   const [rows, setRows] = useState<Row[]>([{ l: "", w: "" }]);
   const [editing, setEditing] = useState(false);
   const [busy, setBusy] = useState(false);
+  const me = useMyLocation();
   const o = q.data;
 
   useEffect(() => {
@@ -66,6 +70,7 @@ export function CourierWash({ id }: { id: string }) {
     }
   }
 
+  const away = me && o.lat != null && o.lng != null ? distanceKm(me.lat, me.lng, o.lat, o.lng) : null;
   const measurable = o.status === "courier_assigned" || o.status === "measured" || o.status === "quote_sent";
   const parsed = rows.map(rowCm);
   const allValid = parsed.every(Boolean) && parsed.length > 0;
@@ -77,6 +82,7 @@ export function CourierWash({ id }: { id: string }) {
       <div className="flex items-center gap-2">
         <span className="inline-flex items-center gap-1.5 text-[16px] font-semibold text-hint">
           <Icon name={o.service} size={18} /> {t(svcLabel(o.service))} · {o.displayNumber}
+          {away != null && <> · {t("c_from_you", { d: km(away) })}</>}
         </span>
         <span className="flex-1" />
         <WashStatusBadge status={o.status} onHold={o.onHold} />
@@ -95,6 +101,10 @@ export function CourierWash({ id }: { id: string }) {
             <PrivatePhoto key={p.id} id={p.id} className="h-32 w-32 shrink-0 rounded-card" />
           ))}
         </div>
+      )}
+
+      {o.lat != null && o.lng != null && (
+        <MapView className="mt-3 h-44" markers={[{ id: o.id, lat: o.lat, lng: o.lng, color: "#15803d" }]} me={me} />
       )}
 
       <div className="mt-3 space-y-2">

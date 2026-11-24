@@ -85,6 +85,8 @@ function Where({ d, update }: StepProps) {
   const { catalog } = useSession();
   const addresses = useQuery<AddressDTO[]>("addresses", () => api.get("/addresses"));
   const [fly, setFly] = useState<{ lat: number; lng: number; at: number } | null>(null);
+  const [locating, setLocating] = useState(false);
+  const toast = useToast();
   const seq = useRef(0);
   const city0 = catalog.cities[0];
   const initial = useRef(d.lat && d.lng ? { lat: d.lat, lng: d.lng } : (lastKnownLocation() ?? { lat: city0?.centerLat ?? 41.3111, lng: city0?.centerLng ?? 69.2797 }));
@@ -95,9 +97,18 @@ function Where({ d, update }: StepProps) {
     started.current = true;
     const saved = addresses.data[0];
     if (saved) pick(saved);
-    else void getLocation().then((p) => p && setFly({ ...p, at: Date.now() }));
+    else void locate(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [addresses.data]);
+
+  async function locate(manual: boolean) {
+    if (locating) return;
+    setLocating(true);
+    const p = await getLocation();
+    setLocating(false);
+    if (p) setFly({ ...p, at: Date.now() });
+    else if (manual) toast(t("err_location"), "info");
+  }
 
   function pick(a: AddressDTO) {
     update({ lat: a.lat, lng: a.lng, address: a.address, notes: a.notes ?? "" });
@@ -123,7 +134,17 @@ function Where({ d, update }: StepProps) {
           ))}
         </div>
       )}
-      <MapPicker center={initial.current} onMove={onMove} flyTo={fly} />
+      <div className="relative">
+        <MapPicker center={initial.current} onMove={onMove} flyTo={fly} />
+        <button
+          onClick={() => locate(true)}
+          className="card-hc absolute bottom-3 right-3 z-[600] flex min-h-tap items-center gap-2 rounded-full bg-card px-4 text-[15px] font-semibold text-accent-ink shadow-lg active:scale-95"
+        >
+          {locating ? <span className="h-5 w-5 animate-spin rounded-full border-2 border-current border-r-transparent" /> : <Icon name="locate" size={20} />}
+          {t("my_location")}
+        </button>
+        <p className="pointer-events-none absolute left-3 top-3 z-[600] rounded-full bg-card/90 px-3 py-1 text-[13px] font-medium text-hint shadow">{t("drag_pin")}</p>
+      </div>
       {area && !area.ok ? (
         <Card className="mt-3 border-2 border-warn/40 bg-warn-soft">
           <p className="font-semibold text-warn">{t("no_service_title")}</p>
