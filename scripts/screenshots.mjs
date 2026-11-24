@@ -31,6 +31,14 @@ const SCREENS = [
   ["a-catalog", "admin", r([["a_catalog"]]), "&mode=admin"],
   ["a-broadcast", "admin", r([["a_more"], ["a_broadcast"]]), "&mode=admin"],
   ["a-cash", "admin", r([["a_more"], ["a_cash"]]), "&mode=admin"],
+  ["s-home3", "customer", r([["home"]]), "&curtainoff=1"],
+  ["s-wash-new", "customer", r([["home"], ["wash_new", { service: "carpet", step: 3 }]])],
+  ["s-wash-quote", "customer", r([["home"], ["wash_order", { id: "w1" }]])],
+  ["s-courier-measure", "courier", r([["c_list"], ["c_wash", { id: "w1" }]]), "&mode=courier"],
+  ["s-washer", "washer", r([["w_list"], ["w_order", { id: "w1" }]]), "&mode=washer"],
+  ["s-admin-services", "admin", r([["a_more"], ["a_services"]]), "&mode=admin"],
+  ["s-admin-wash-prices", "admin", r([["a_catalog"], ["a_wash_settings", { service: "carpet" }]]), "&mode=admin"],
+  ["s-admin-dash", "admin", r([["a_dash"]]), "&mode=admin"],
 ];
 
 mkdirSync("screenshots", { recursive: true });

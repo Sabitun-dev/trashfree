@@ -126,6 +126,42 @@ const dashboard = {
   perDay: Array.from({ length: 7 }, (_, i) => ({ day: addDays(today, i - 6), count: [26, 31, 28, 35, 24, 39, 31][i] })),
 };
 
+const washOrder = (over: Record<string, unknown> = {}) => ({
+  kind: "wash",
+  id: "w1",
+  number: 12,
+  displayNumber: "G-12",
+  service: "carpet",
+  status: "quote_sent",
+  statusAt: iso(20),
+  cityId: 1,
+  address: "Amir Temur ko'chasi, 15",
+  lat: 41.3145,
+  lng: 69.2815,
+  notes: "2-podyezd, 4-qavat",
+  pickupDate: today,
+  slotStart: 780,
+  slotEnd: 900,
+  quoteVersion: 1,
+  onHold: false,
+  needsApproval: false,
+  paymentMethod: "cash",
+  paymentStatus: "cod_pending",
+  createdAt: iso(120),
+  cancelReason: null,
+  photos: [],
+  customer: null,
+  courier: { id: 7, name: "Jasur Karimov", phone: "+998901110001" },
+  washer: null,
+  timeline: [{ to: "created", at: iso(120) }, { to: "courier_assigned", at: iso(90) }, { to: "measured", at: iso(25) }, { to: "quote_sent", at: iso(25) }],
+  items: [
+    { id: 1, position: 1, label: "G-12-1", type: "carpet", lengthCm: 400, widthCm: 250, areaTenths: 100, washerLengthCm: null, washerWidthCm: null, washerAreaTenths: null },
+    { id: 2, position: 2, label: "G-12-2", type: "carpet", lengthCm: 200, widthCm: 150, areaTenths: 30, washerLengthCm: null, washerWidthCm: null, washerAreaTenths: null },
+  ],
+  money: { lines: [{ lengthCm: 400, widthCm: 250, areaTenths: 100, amount: 120000 }, { lengthCm: 200, widthCm: 150, areaTenths: 30, amount: 36000 }], subtotal: 156000, minimumApplied: false, deliveryFee: 10000, total: 166000, quoteStatus: "sent" },
+  ...over,
+});
+
 function route(role: string, method: string, path: string): unknown {
   const p = path.split("?")[0];
   if (p === "/bootstrap") {
@@ -157,7 +193,20 @@ function route(role: string, method: string, path: string): unknown {
   if (p === "/courier/orders") return courierOrders[new URLSearchParams(path.split("?")[1]).get("tab") as "new"] ?? [];
   if (p === "/courier/counts") return { new: 2, mine: 2 };
   if (p === "/courier/today") return { doneToday: 6, cashToday: 145000, onlineToday: 90000, onlineCount: 3, cashToHandOver: 145000, cashOrders: 4 };
-  if (p === "/admin/dashboard") return dashboard;
+  if (p === "/admin/dashboard") return { ...dashboard, washerPayouts: 1_040_000, courierPay: 195_000, margin: 5_150_000, cashByCourier: [{ courier: { id: 7, name: "Jasur Karimov" }, amount: 145000, orders: 4 }, { courier: { id: 8, name: "Bekzod Aliyev" }, amount: 79000, orders: 1 }], byService: [{ service: "trash", count: 214 }, { service: "carpet", count: 23 }, { service: "curtain", count: 9 }], measurement: [{ courierId: 8, name: "Bekzod Aliyev", orders: 6, avgDiffPct: 6.2 }, { courierId: 7, name: "Jasur Karimov", orders: 11, avgDiffPct: 1.8 }] };
+  if (p === "/wash/info") return { pricePerM2: 12000, minOrder: 60000, deliveryFee: 10000, freeDeliveryFrom: 180000, maxItems: 10 };
+  if (p === "/wash/slots") return { slots: catalog.slots.map((x, i) => ({ slotId: x.id, available: i > 1, reason: i <= 1 ? "past" : null, left: null })) };
+  if (p === "/wash/orders" && method === "GET") return new URLSearchParams(path.split("?")[1]).get("filter") === "active" ? [washOrder()] : [];
+  if (p.startsWith("/wash/orders/")) {
+    if (role === "courier") return washOrder({ status: "courier_assigned", money: null, customer: { id: 3, name: "Dilnoza Rahimova", phone: "+998901234501" }, items: [] });
+    if (role === "washer") return washOrder({ status: "at_washer", address: null, lat: null, lng: null, money: { washerPayout: 104000 }, items: washOrder().items.map((i) => ({ ...i, lengthCm: null, widthCm: null, areaTenths: null })) });
+    return washOrder();
+  }
+  if (p === "/wash/courier") return new URLSearchParams(path.split("?")[1]).get("tab") === "new" ? [washOrder({ status: "created", items: [], money: null, displayNumber: "P-13", service: "curtain" })] : [];
+  if (p === "/wash/washer") return [washOrder({ status: "at_washer", address: null, money: null })];
+  if (p === "/wash/washers") return [{ id: 20, name: "Toza Gilam MChJ" }];
+  if (p.startsWith("/admin/wash-settings/")) { const r = { id: 3, pricePerM2: 12000, washerSharePerM2: 8000, minOrder: 60000, maxOrder: 1500000, maxItems: 10, deliveryFee: 10000, freeDeliveryFrom: 180000, tolerancePct: 5, courierPay: 15000, createdAt: iso(60 * 24), createdById: 1 }; return { current: r, history: [r, { ...r, id: 1, pricePerM2: 10000, createdAt: iso(60 * 24 * 10) }] }; }
+  if (p === "/admin/wash-orders") return [washOrder(), washOrder({ id: "w2", displayNumber: "G-11", number: 11, status: "at_washer", onHold: true })];
   if (p === "/admin/orders") return { items: [...orders, ...courierOrders.new].map((o) => ({ ...o, refundNote: null, cashHandoverId: null })), next: null };
   if (p.startsWith("/admin/orders/")) return { ...orders[0], refundNote: null, cashHandoverId: null, audits: [] };
   if (p === "/admin/people") return [{ id: 3, name: "Dilnoza Rahimova", username: "dilnoza", phone: "+998901234501", role: "customer", blocked: false, cityIds: [], orders: 12, deletionRequested: false }, { id: 7, name: "Jasur Karimov", username: null, phone: "+998901110001", role: "courier", blocked: false, cityIds: [1], orders: 0, deletionRequested: false }, { id: 9, name: "Aziz Tursunov", username: "aziz", phone: "+998901234502", role: "customer", blocked: true, cityIds: [], orders: 3, deletionRequested: false }];

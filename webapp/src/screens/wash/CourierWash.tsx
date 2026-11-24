@@ -97,17 +97,17 @@ export function CourierWash({ id }: { id: string }) {
         </div>
       )}
 
-      <div className="mt-3 flex gap-2">
-        {o.customer?.phone ? <CallButton phone={o.customer.phone} label={t("call")} className="flex-1" /> : <div className="flex flex-1 items-center rounded-2xl bg-line/50 px-3 text-[14px] text-hint">{t("c_phone_after")}</div>}
+      <div className="mt-3 space-y-2">
+        {o.customer?.phone ? <CallButton phone={o.customer.phone} label={t("call")} className="w-full" /> : <div className="flex min-h-tap items-center rounded-2xl bg-line/50 px-3 text-[14px] text-hint">{t("c_phone_after")}</div>}
         {o.lat != null && o.lng != null && (
-          <>
-            <Button size="xl" variant="outline" onClick={() => openLink(`https://yandex.uz/maps/?rtext=~${o.lat},${o.lng}&rtt=auto`)}>
+          <div className="grid grid-cols-2 gap-2">
+            <Button size="xl" variant="outline" icon="nav" onClick={() => openLink(`https://yandex.uz/maps/?rtext=~${o.lat},${o.lng}&rtt=auto`)}>
               Yandex
             </Button>
             <Button size="xl" variant="outline" onClick={() => openLink(`https://www.google.com/maps/dir/?api=1&destination=${o.lat},${o.lng}`)}>
               Google
             </Button>
-          </>
+          </div>
         )}
       </div>
 

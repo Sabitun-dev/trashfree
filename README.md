@@ -1,11 +1,12 @@
-# Trashfree — Telegram Mini App for trash pickup
+# Trashfree — Telegram Mini App: trash pickup, carpet & curtain washing
 
-Customers order a pickup in 4 steps, couriers take orders on a map, admins see everything.
-It all runs inside Telegram: a bot + a Mini App. Hosting is Netlify, the database is Neon (PostgreSQL).
+Three services in one Telegram bot + Mini App: **Chiqindi olib ketish**, **Gilam yuvish**, **Parda yuvish**.
+The admin switches each one on or off at any time. Hosting is Netlify, the database is Neon (PostgreSQL).
 
-- **Customer:** order with map pin, photo, type, quantity, time slot; pay with cash, Click, Payme, card or subscription; live status; rating; receipts.
-- **Courier:** "Yangi / Meniki / Bajarilgan" tabs, map + route, "Olaman / Yo'ldaman / Bajarildi", batch completion, today's cash, sunlight mode.
-- **Admin:** dashboard, orders (filters, reassign, cancel, CSV), people (roles, invites, blocking, data deletion), catalog (prices, slots, cities, trash types with IKPU, plans), broadcasts, cash handovers, audit log, settings.
+- **Customer:** service menu; trash pickup in 4 steps; carpet/curtain pickup in 3 steps, then confirm the measured price in the bot; cash, Click, Payme, card or subscription (trash); live status; receipts.
+- **Courier:** "Yangi / Meniki / Bajarilgan" tabs for every service they handle, map + route, trash "Olaman / Yo'ldaman / Bajarildi", carpet/curtain measuring (never sees prices), today's cash.
+- **Washer:** receives items, re-measures them blind, marks them washed; sees only their own share.
+- **Admin:** service switches, dashboard with service filter (revenue, washer payouts, courier pay, margin, cash per courier, measuring accuracy), orders, people, catalog (incl. carpet/curtain prices with history), broadcasts, cash handovers, alerts, audit log, settings.
 
 ---
 
@@ -128,6 +129,56 @@ cabinet and press **"Qaytarish qo'lda bajarildi"** with a note (audit-logged).
 
 ---
 
+## 3b. Services: switching them on/off, carpet & curtain washing
+
+### Switches (Admin → Ko'proq → Xizmatlar)
+- One switch per service. When a service is **off**, new orders for it are refused — by the server too, not just the button.
+  Orders already in progress continue normally.
+- When off, the client's button is **hidden** (default) or shown as **"Hozircha mavjud emas"** with your message.
+- Optional **"off until"** date: the service turns itself back on at 00:00 that day.
+- Every switch is in the audit log (who, when, before/after).
+- After the update, **trash is on** and **carpet and curtain are off** — switch them on when you are ready.
+
+### Who handles what
+- **Couriers:** Odamlar → courier → choose cities **and services** (trash / carpet / curtain). Every courier who existed
+  before this update keeps "trash" only, so nothing changes for them. Invite links also carry services.
+- **Washers:** Odamlar → person → **Yuvuvchi qilish**. A washer opens the app in "Yuvuvchi" mode.
+
+### How a carpet / curtain order goes
+1. **Created** — client picks address, day/time, adds photos (no price yet).
+2. **Courier assigned** — a courier who handles this service in that city taps "Olaman".
+3. **Measured** — the courier enters length × width of every item. Area is rounded **up** to 0.1 m².
+4. **Quote sent** — the bot sends the client every item, the price lines and the total, with **Tasdiqlash / Rad etish**.
+   Above the maximum order the quote waits for an admin's approval first. Declining cancels the order and alerts admins.
+5. **Client confirmed** — sizes are now locked; only an admin can reopen them for a corrected quote (the client confirms again).
+6. **Picked up** — each item gets a label like **G-12-1** (carpet) / **P-12-1** (curtain) for the branded sticker.
+7. **At washer** — the courier hands the items to a washer, who re-measures them **without seeing the courier's sizes**.
+   A difference above the tolerance puts the order **on hold** and alerts admins; an admin releases it after checking.
+8. **Washed → Out for delivery → Delivered and paid** — if the client didn't pay online, the courier types the cash he
+   received (he never sees the price); a difference from the total alerts admins.
+9. **Closed** — automatically 24 h after delivery.
+Every status change is logged with who and when.
+
+### Prices (Admin → Katalog → Gilam / Parda: narxlar)
+Price per m², washer share per m², minimum order, maximum order (above it: admin approval), items per pickup, delivery fee,
+free-delivery limit, measuring tolerance %, courier pay per order. Every save is kept in the history and applies to
+**new orders only** — orders keep the settings they were created with.
+
+Example (starting settings): a 4.0 × 2.5 m carpet = 10.0 m² × 12 000 = **120 000** + delivery 10 000 = **130 000**;
+washer share 80 000. A 2 m² curtain = 24 000 → minimum order **60 000** + delivery 10 000.
+
+### Admin alerts (bot + bell)
+Measurement mismatch · order above maximum · client declined · order stuck 24 h in one status · cash not handed over
+by the next day · cash received differs from the total.
+
+### Database changes
+All additive: new tables `Service`, `CourierService`, `WashSettings`, `WashOrder`, `WashItem`, `WashQuote`,
+`WashStatusLog`; new role value `washer`; optional `washOrderId` on `Payment` and `OrderPhoto`; `services` on `Invite`.
+Existing trash orders and tables are untouched. Migrations run automatically on the next production deploy
+(`npx prisma migrate deploy`); `tests/migrations.test.ts` applies them to an in-memory Postgres that already holds trash data.
+
+---
+
 ## 4. Testing with three phones (customer, courier, admin)
 
 Phone **A** = admin (your account, in `OWNER_TELEGRAM_IDS`), **B** = courier, **C** = customer.
@@ -154,6 +205,23 @@ Phone **A** = admin (your account, in `OWNER_TELEGRAM_IDS`), **B** = courier, **
 | 18 | C | Profil → Til → Русский / English | Every screen switches at once |
 | 19 | C | Write "salom" to the bot | A new topic appears in the support group; A replies there → C receives it |
 | 20 | C | Profil → Ma'lumotlarimni o'chirish; A confirms in Odamlar | C's name/phone/addresses/photos removed, totals stay |
+
+**Carpet & curtain** (add a 4th phone **D** = washer, or use A):
+
+| # | Who | Do this | Expect |
+|---|---|---|---|
+| 21 | A | Ko'proq → Xizmatlar → switch **Gilam yuvish** and **Parda yuvish** on | Client home shows three buttons |
+| 22 | A | Switch Parda off, choose "Hozircha mavjud emas", write a message | Client sees Parda greyed with your message; ordering it is refused |
+| 23 | A | Odamlar → B → Kuryer → tick Gilam; Odamlar → D → **Yuvuvchi qilish** | — |
+| 24 | C | Gilam yuvish → address, day, cash → Buyurtma berish | B gets "🆕 Gilam yuvish G-…" in the bot |
+| 25 | B | Open → Olaman → measure 4.0 × 2.5 → Narxni mijozga yuborish | B sees only 10.0 m²; C gets the quote: 120 000 + 10 000 = **130 000** with buttons |
+| 26 | C | Tasdiqlash in the bot | Order "Tasdiqlandi"; B can no longer change sizes |
+| 27 | B | Olib ketdim → choose washer D | D gets "items handed to you" |
+| 28 | D | Measure 4.3 × 2.5 (7.5 % more) → save | Order on hold; A gets a mismatch alert; D can't mark washed |
+| 29 | A | Open order → Tekshirildi — davom ettirish | D marks **Yuvildi**; C notified |
+| 30 | B | Yetkazishga olib ketdim → Yetkazildi, type 130 000 | C notified; B's Bugun shows the cash; A sees it in Naqd topshirish |
+| 31 | A | Panel → filter Gilam yuvish | Washer payouts 80 000, margin, cash per courier, measuring accuracy |
+| 32 | A | Katalog → Gilam narxlari → change price/m² | Order from step 24 keeps 130 000; a new order uses the new price |
 
 Seed check (on a fresh seeded database, "Bugun"): **10 orders · 3 completed · 6 pending · 1 cancelled**; cash not handed over **104 000 so'm** (Jasur 25 000 + Bekzod 79 000).
 
