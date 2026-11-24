@@ -131,3 +131,9 @@ export function WashQuoteCard({ order, children }: { order: WashDTO; children?: 
     </Card>
   );
 }
+
+/** 0…1 progress of a carpet/curtain order (for compact progress bars). */
+export function washProgress(status: WashStatus): number {
+  const idx = STEPS.findIndex((s) => s.from.includes(status));
+  return idx < 0 ? 0 : (idx + 1) / STEPS.length;
+}

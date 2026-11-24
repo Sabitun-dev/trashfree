@@ -472,6 +472,11 @@ export const uz = {
   // services
   svc_trash: "Chiqindi olib ketish",
   svc_pick: "Qaysi xizmat kerak?",
+  home_sub: "Bugun qaysi xizmat kerak?",
+  home_services: "Xizmatlar",
+  home_more_active: "Yana {n} ta faol buyurtma",
+  home_quote_cta: "Narx tayyor — tasdiqlang",
+  home_pay_cta: "To'lovni yakunlang",
   svc_carpet: "Gilam yuvish",
   svc_curtain: "Parda yuvish",
   svc_trash_sub: "4 qadam · 1 daqiqa",

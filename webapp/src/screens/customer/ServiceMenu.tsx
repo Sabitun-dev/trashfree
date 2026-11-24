@@ -43,8 +43,8 @@ export function ServiceMenu() {
   }
 
   return (
-    <section aria-label={t("svc_pick")}>
-      <h2 className="mb-3 px-1 text-[20px] font-bold tracking-tight">{t("svc_pick")}</h2>
+    <section aria-label={t("home_services")}>
+      <h2 className="mb-2.5 px-1 text-[18px] font-bold tracking-tight">{t("home_services")}</h2>
       <div className="space-y-3">
         {list.map((s) => {
           const m = META[s.code];
@@ -57,12 +57,12 @@ export function ServiceMenu() {
               onClick={() => start(s)}
               aria-disabled={!open}
               className={cx(
-                "card-hc relative flex min-h-[92px] w-full items-center gap-4 overflow-hidden rounded-[22px] border-2 p-4 text-left transition active:scale-[.98]",
+                "card-hc relative flex min-h-[84px] w-full items-center gap-4 overflow-hidden rounded-[22px] border-2 px-4 py-3 text-left transition active:scale-[.98]",
                 tone.card,
               )}
             >
-              <span className={cx("flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl", tone.icon)}>
-                <Icon name={m.icon} size={30} />
+              <span className={cx("flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl", tone.icon)}>
+                <Icon name={m.icon} size={26} />
               </span>
               <span className="min-w-0 flex-1">
                 <span className={cx("block text-[19px] font-extrabold leading-6", open ? "text-ink" : "text-mute")}>{t(m.label)}</span>
