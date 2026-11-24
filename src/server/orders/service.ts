@@ -13,6 +13,7 @@ import { bad, conflict, notFound, tooMany } from "../errors";
 import { onOrderCancelled, onOrderOpened } from "../notify/events";
 import { paymentAvailable } from "../payments/availability";
 import { getSettings } from "../settings";
+import { assertServiceOpen } from "../services";
 import { activeSubscription, consumePickupTx, returnPickupTx } from "../subscriptions/service";
 import type { AuthUser } from "../users";
 import { orderInclude, serializeOrder, type OrderFull } from "./serialize";
@@ -50,6 +51,9 @@ export async function createOrder(user: AuthUser, input: CreateOrderInput, now =
   // Idempotency: a retry with the same key returns the same order, never a second one.
   const existing = await db().order.findUnique({ where: { idempotencyKey: key }, include: orderInclude });
   if (existing) return { order: existing, created: false };
+
+  // New trash orders are blocked while the admin has switched trash pickup off. Orders in progress are unaffected.
+  await assertServiceOpen("trash", now);
 
   const settings = await getSettings();
   const since = new Date(now.getTime() - 3600_000);

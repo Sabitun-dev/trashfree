@@ -2,6 +2,7 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import { isAdmin } from "../../../domain/permissions";
+import { courierHandles } from "../../../domain/services";
 import { db } from "../../db";
 import { courierAccept, courierComplete, courierGiveBack, courierOnTheWay, courierToday } from "../../courier/service";
 import { forbidden, notFound } from "../../errors";
@@ -16,9 +17,10 @@ courierRoutes.get("/courier/orders", async (c) => {
   const user = c.get("user");
   const { tab } = query(c, z.object({ tab: z.enum(["new", "mine", "done"]) }));
   const cityIds = isAdmin(user.role) && user.cityIds.length === 0 ? undefined : user.cityIds;
+  const handlesTrash = courierHandles(user.role, user.services, "trash");
   const where =
     tab === "new"
-      ? { status: "open" as const, archivedAt: null, ...(cityIds ? { cityId: { in: cityIds } } : {}) }
+      ? { status: "open" as const, archivedAt: null, ...(cityIds ? { cityId: { in: cityIds } } : {}), ...(handlesTrash ? {} : { id: "-" }) }
       : tab === "mine"
         ? { courierId: user.id, status: { in: ["accepted" as const, "on_the_way" as const] } }
         : { courierId: user.id, status: "completed" as const };
@@ -35,7 +37,9 @@ courierRoutes.get("/courier/counts", async (c) => {
   const user = c.get("user");
   const cityIds = isAdmin(user.role) && user.cityIds.length === 0 ? undefined : user.cityIds;
   const [fresh, mine] = await Promise.all([
-    db().order.count({ where: { status: "open", archivedAt: null, ...(cityIds ? { cityId: { in: cityIds } } : {}) } }),
+    courierHandles(user.role, user.services, "trash")
+      ? db().order.count({ where: { status: "open", archivedAt: null, ...(cityIds ? { cityId: { in: cityIds } } : {}) } })
+      : Promise.resolve(0),
     db().order.count({ where: { courierId: user.id, status: { in: ["accepted", "on_the_way"] } } }),
   ]);
   return json(c, { new: fresh, mine });

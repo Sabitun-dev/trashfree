@@ -18,6 +18,7 @@ export function AdminMore() {
   return (
     <Page hasTabBar title={t("more")}>
       <RowGroup>
+        <Row icon="box" label={t("a_services")} onClick={() => nav.push("a_services")} />
         <Row icon="megaphone" label={t("a_broadcast")} onClick={() => nav.push("a_broadcast")} />
         <Row icon="cash" label={t("a_cash")} onClick={() => nav.push("a_cash")} />
         <Row icon="clipboard" label={t("a_audit")} onClick={() => nav.push("a_audit")} />

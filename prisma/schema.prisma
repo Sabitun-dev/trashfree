@@ -79,6 +79,7 @@ model User {
   updatedAt           DateTime  @updatedAt
 
   courierCities     CourierCity[]
+  courierServices   CourierService[]
   addresses         Address[]
   orders            Order[]          @relation("CustomerOrders")
   courierOrders     Order[]          @relation("CourierOrders")
@@ -101,6 +102,36 @@ model CourierCity {
   city   City @relation(fields: [cityId], references: [id], onDelete: Cascade)
 
   @@id([userId, cityId])
+}
+
+// ---------- Services (trash pickup, carpet washing, curtain washing) ----------
+
+enum ServiceCode {
+  trash
+  carpet
+  curtain
+}
+
+/// One row per service. The admin switches services on/off; new orders for a service that is off are rejected.
+model Service {
+  code        ServiceCode @id
+  enabled     Boolean     @default(true)
+  /// When off: false = hide the button, true = show it as "Hozircha mavjud emas" with offMessage.
+  showWhenOff Boolean     @default(false)
+  offMessage  String?
+  /// Switched off until this moment; after it the service counts as on again (the scheduler also flips it).
+  offUntil    DateTime?
+  sort        Int         @default(0)
+  updatedAt   DateTime    @updatedAt
+}
+
+/// Which services a courier may handle.
+model CourierService {
+  userId  Int
+  service ServiceCode
+  user    User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, service])
 }
 
 model Address {
@@ -413,6 +444,7 @@ model Invite {
   id          Int       @id @default(autoincrement())
   token       String    @unique
   cityIds     Int[]
+  services    ServiceCode[] @default([trash])
   createdById Int
   usedById    Int?
   usedAt      DateTime?

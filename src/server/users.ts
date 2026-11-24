@@ -1,4 +1,5 @@
 // Users come only from validated Telegram initData. No sign-up form.
+import type { ServiceCode } from "../domain/services";
 import type { Role } from "../domain/types";
 import type { TgUser } from "./auth/initData";
 import { db } from "./db";
@@ -17,6 +18,8 @@ export interface AuthUser {
   introSeen: string[];
   mutedCategories: string[];
   cityIds: number[];
+  /** Services this person handles as a courier. */
+  services: ServiceCode[];
   deletionRequestedAt: Date | null;
   botBlocked: boolean;
 }
@@ -29,11 +32,13 @@ export function langFromTelegram(code?: string): string {
   return code?.startsWith("ru") ? "ru" : code?.startsWith("en") ? "en" : "uz";
 }
 
+export const userInclude = { courierCities: true, courierServices: true } as const;
+
 /** Find or create the user for a Telegram account; owners from OWNER_TELEGRAM_IDS are promoted. */
 export async function upsertTelegramUser(tgUser: TgUser): Promise<AuthUser> {
   const telegramId = BigInt(tgUser.id);
   const isOwner = env.ownerIds.includes(telegramId);
-  let user = await db().user.findUnique({ where: { telegramId }, include: { courierCities: true } });
+  let user = await db().user.findUnique({ where: { telegramId }, include: userInclude });
   if (!user) {
     user = await db().user.upsert({
       where: { telegramId },
@@ -45,7 +50,7 @@ export async function upsertTelegramUser(tgUser: TgUser): Promise<AuthUser> {
         role: isOwner ? "owner" : "customer",
       },
       update: {},
-      include: { courierCities: true },
+      include: userInclude,
     });
   } else {
     const patch: { username?: string | null; role?: Role; botBlocked?: boolean } = {};
@@ -53,7 +58,7 @@ export async function upsertTelegramUser(tgUser: TgUser): Promise<AuthUser> {
     if (isOwner && user.role !== "owner") patch.role = "owner";
     if (user.botBlocked && tgUser.allows_write_to_pm) patch.botBlocked = false;
     if (Object.keys(patch).length) {
-      user = await db().user.update({ where: { id: user.id }, data: patch, include: { courierCities: true } });
+      user = await db().user.update({ where: { id: user.id }, data: patch, include: userInclude });
     }
   }
   return toAuthUser(user);
@@ -74,6 +79,7 @@ export function toAuthUser(u: {
   deletionRequestedAt: Date | null;
   botBlocked: boolean;
   courierCities: { cityId: number }[];
+  courierServices?: { service: string }[];
 }): AuthUser {
   return {
     id: u.id,
@@ -90,6 +96,7 @@ export function toAuthUser(u: {
     deletionRequestedAt: u.deletionRequestedAt,
     botBlocked: u.botBlocked,
     cityIds: u.courierCities.map((c) => c.cityId),
+    services: (u.courierServices ?? []).map((c) => c.service as ServiceCode),
   };
 }
 
@@ -104,6 +111,7 @@ export function publicMe(u: AuthUser) {
     introSeen: u.introSeen,
     mutedCategories: u.mutedCategories,
     cityIds: u.cityIds,
+    services: u.services,
     deletionRequested: !!u.deletionRequestedAt,
     /** False when the bot could not message this person (they never pressed Start or blocked the bot). */
     botReachable: !u.botBlocked,

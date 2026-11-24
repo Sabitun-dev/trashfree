@@ -12,7 +12,8 @@ import { botUsername, tg } from "../../bot/telegram";
 import { bt } from "../../bot/texts";
 import { hit } from "../../ratelimit";
 import { env } from "../../env";
-import { publicMe } from "../../users";
+import { publicMe, toAuthUser, userInclude } from "../../users";
+import { clientServices } from "../../services";
 import { json, body, type Env } from "../context";
 
 export const meRoutes = new Hono<Env>();
@@ -41,6 +42,7 @@ meRoutes.get("/bootstrap", async (c) => {
       supportPhone: settings.supportPhone,
     },
     subscription: sub ? serializeSubscription(sub) : null,
+    services: await clientServices(),
     unread,
     bot: { username, app: env.miniAppShortName },
   });
@@ -66,8 +68,8 @@ meRoutes.post("/me", async (c) => {
   if (b.nameConfirmed !== undefined) data.nameConfirmed = b.nameConfirmed;
   if (b.introSeen && !user.introSeen.includes(b.introSeen)) data.introSeen = [...user.introSeen, b.introSeen];
   if (b.mutedCategories) data.mutedCategories = b.mutedCategories;
-  const u = await db().user.update({ where: { id: user.id }, data, include: { courierCities: true } });
-  return json(c, publicMe({ ...user, ...u, cityIds: u.courierCities.map((x) => x.cityId) }));
+  const u = await db().user.update({ where: { id: user.id }, data, include: userInclude });
+  return json(c, publicMe(toAuthUser(u)));
 });
 
 /** "Yordam": the bot writes first, so the person lands in a chat that already says what to do. */
@@ -114,7 +116,10 @@ meRoutes.post("/invite/accept", async (c) => {
     for (const cityId of inv.cityIds) {
       await tx.courierCity.upsert({ where: { userId_cityId: { userId: user.id, cityId } }, create: { userId: user.id, cityId }, update: {} });
     }
-    await audit({ actorId: user.id, action: "courier.invite_accepted", entity: "user", entityId: user.id, after: { cityIds: inv.cityIds } }, tx);
+    for (const service of inv.services ?? ["trash"]) {
+      await tx.courierService.upsert({ where: { userId_service: { userId: user.id, service } }, create: { userId: user.id, service }, update: {} });
+    }
+    await audit({ actorId: user.id, action: "courier.invite_accepted", entity: "user", entityId: user.id, after: { cityIds: inv.cityIds, services: inv.services } }, tx);
   });
   return json(c, { ok: true, role: user.role === "customer" ? "courier" : user.role });
 });

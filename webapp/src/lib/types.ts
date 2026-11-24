@@ -68,6 +68,7 @@ export interface Me {
   cityIds: number[];
   deletionRequested: boolean;
   botReachable: boolean;
+  services: ("trash" | "carpet" | "curtain")[];
 }
 
 export interface SubscriptionDTO {
@@ -97,6 +98,7 @@ export interface Bootstrap {
   };
   subscription: SubscriptionDTO | null;
   unread: number;
+  services: { code: "trash" | "carpet" | "curtain"; visibility: "open" | "unavailable" | "hidden"; message: string | null }[];
   bot: { username: string | null; app: string };
 }
 

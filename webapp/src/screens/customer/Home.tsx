@@ -1,4 +1,4 @@
-// Customer home: one big button, live order cards, subscription badge, repeat, bell.
+// Customer home: service menu (trash / carpet / curtain), live order cards, subscription badge, repeat, bell.
 import { localName } from "@domain/types";
 import { useT } from "../../i18n";
 import { api } from "../../lib/api";
@@ -15,7 +15,8 @@ import { Card, ErrorState, IconButton, Section, SkeletonList } from "../../ui/ki
 import { Page } from "../../ui/layout";
 import { openSupport } from "../common/Profile";
 import { prefillFromOrder } from "./prefill";
-import { clearDraft, loadDraft } from "../../lib/draft";
+import { loadDraft } from "../../lib/draft";
+import { ServiceMenu } from "./ServiceMenu";
 
 export function Home() {
   const t = useT();
@@ -25,6 +26,7 @@ export function Home() {
   const last = useQuery<(OrderDTO & { trashTypeCode: string; packageSizeCode: string }) | null>("orders:last", () => api.get("/orders/last"));
   const sub = s.subscription;
   const firstName = s.me.name.split(" ")[0];
+  const trashOpen = s.services.find((x) => x.code === "trash")?.visibility === "open";
 
   // While the customer looks at the home screen, quietly prepare everything the order map needs.
   useEffect(() => {
@@ -55,25 +57,9 @@ export function Home() {
         </button>
       )}
 
-      <button
-        onClick={() => {
-          haptic.press();
-          clearDraft();
-          nav.push("new_order", { step: 1 });
-        }}
-        className="relative flex w-full items-center gap-4 overflow-hidden rounded-[24px] bg-accent p-5 text-left text-on-accent shadow-lg shadow-accent/25 transition active:scale-[.98]"
-      >
-        <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-white/20">
-          <Icon name="trash" size={34} />
-        </span>
-        <span className="flex-1">
-          <span className="block text-[22px] font-extrabold leading-7">{t("big_order")}</span>
-          <span className="mt-0.5 block text-[15px] opacity-90">{t("big_order_sub")}</span>
-        </span>
-        <Icon name="right" size={26} />
-      </button>
+      <ServiceMenu />
 
-      {last.data && (
+      {last.data && trashOpen && (
         <Card
           className="mt-3 flex items-center gap-3"
           onClick={() => {

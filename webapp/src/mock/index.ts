@@ -101,7 +101,9 @@ const me = (role: string) => ({
   introSeen: new URLSearchParams(location.search).has("intro") ? [] : ["customer", "courier", "admin"],
   mutedCategories: [],
   cityIds: role === "customer" ? [] : [1],
+  services: role === "customer" ? [] : ["trash", "carpet", "curtain"],
   deletionRequested: false,
+  botReachable: true,
 });
 
 const subscription = { id: 5, status: "active", plan: { id: 2, code: "business", nameUz: "Business", nameRu: "Бизнес", nameEn: "Business", pickups: 8 }, periodStart: iso(60 * 24 * 10), periodEnd: new Date(Date.now() + 20 * 86_400_000).toISOString(), pickupsTotal: 8, pickupsUsed: 3, left: 5 };
@@ -128,7 +130,7 @@ function route(role: string, method: string, path: string): unknown {
   const p = path.split("?")[0];
   if (p === "/bootstrap") {
     const sp = new URLSearchParams(location.search).get("sp");
-    return { me: me(role), startParam: sp, catalog, settings: { maxQuantity: 20, maxPhotos: 3, bookingDaysAhead: 7, slotCutoffMinutes: 60, paymentTimeoutMinutes: 30, methods: { subscription: true, cash: true, click: true, payme: true, card: true }, prioritySlotsForSubscribers: false, supportPhone: "" }, subscription: new URLSearchParams(location.search).has("nosub") ? null : subscription, unread: 2, bot: { username: "trashfree_bot", app: "app" } };
+    return { me: me(role), startParam: sp, catalog, settings: { maxQuantity: 20, maxPhotos: 3, bookingDaysAhead: 7, slotCutoffMinutes: 60, paymentTimeoutMinutes: 30, methods: { subscription: true, cash: true, click: true, payme: true, card: true }, prioritySlotsForSubscribers: false, supportPhone: "" }, subscription: new URLSearchParams(location.search).has("nosub") ? null : subscription, unread: 2, services: [{ code: "trash", visibility: "open", message: null }, { code: "carpet", visibility: "open", message: null }, { code: "curtain", visibility: new URLSearchParams(location.search).has("curtainoff") ? "unavailable" : "open", message: "Bu hafta parda yuvish ishlamaydi" }], bot: { username: "trashfree_bot", app: "app" } };
   }
   if (p === "/me") return me(role);
   if (p === "/orders" && method === "GET") {
@@ -167,6 +169,7 @@ function route(role: string, method: string, path: string): unknown {
   if (p === "/admin/broadcasts/count") return { count: 820 };
   if (p === "/admin/audit") return { items: [{ id: 1, actorName: "Sardor Admin", action: "catalog.prices.update", entity: "priceRule", entityId: null, before: null, after: null, reason: null, createdAt: iso(30) }], next: null };
   if (p === "/admin/couriers") return [{ id: 7, name: "Jasur Karimov" }, { id: 8, name: "Bekzod Aliyev" }];
+  if (p === "/admin/services") return [{ code: "trash", enabled: true, showWhenOff: false, offMessage: null, offUntil: null }, { code: "carpet", enabled: true, showWhenOff: false, offMessage: null, offUntil: null }, { code: "curtain", enabled: false, showWhenOff: true, offMessage: "Bu hafta parda yuvish ishlamaydi", offUntil: new Date(Date.now() + 3 * 86_400_000).toISOString() }];
   if (p === "/admin/settings") return { orderLimitPerHour: 5, maxQuantity: 20, maxPhotos: 3, slotCutoffMinutes: 60, bookingDaysAhead: 7, paymentTimeoutMinutes: 30, methods: { subscription: true, cash: true, click: true, payme: true, card: true }, cardProvider: "payme", paymentMode: { click: "telegram", payme: "telegram" }, telegramFiscalData: true, paymeTestMode: true, ipAllowlistEnabled: false, ipAllowlist: { payme: [], click: [] }, retention: { photosDays: 90, supportDays: 90, archiveMonths: 12 }, subscriptionReminderDays: 3, prioritySlotsForSubscribers: false, supportPhone: "" };
   if (method !== "GET") return { ok: true, unread: 0 };
   throw new ApiError("not_found", 404);

@@ -457,6 +457,27 @@ export const uz = {
   a_apply: "Qo'llash",
   a_reset: "Tozalash",
   a_user_orders: "Buyurtmalari",
+  // services
+  svc_trash: "Chiqindi olib ketish",
+  svc_carpet: "Gilam yuvish",
+  svc_curtain: "Parda yuvish",
+  svc_trash_sub: "4 qadam · 1 daqiqa",
+  svc_wash_sub: "Olib ketamiz, yuvib qaytaramiz",
+  svc_unavailable: "Hozircha mavjud emas",
+  err_service_disabled: "Bu xizmat hozircha mavjud emas.",
+  err_service_not_allowed: "Bu xizmat sizga biriktirilmagan.",
+  a_services: "Xizmatlar",
+  a_svc_enabled: "Yoqilgan",
+  a_svc_when_off: "O'chirilganda mijozga",
+  a_svc_hide: "Tugmani yashirish",
+  a_svc_show: "«Hozircha mavjud emas»",
+  a_svc_message: "Mijozlarga xabar",
+  a_svc_message_ph: "Masalan: Bu hafta gilam yuvish ishlamaydi",
+  a_svc_until: "Shu sanagacha o'chirish (ixtiyoriy)",
+  a_svc_off_until: "{date} gacha o'chirilgan",
+  a_svc_on_now: "Ishlayapti",
+  a_svc_off_now: "O'chirilgan",
+  a_svc_in_progress: "Boshlangan buyurtmalar odatdagidek davom etadi.",
 };
 
 export type Dict = typeof uz;

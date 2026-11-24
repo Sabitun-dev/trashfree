@@ -53,6 +53,7 @@ export const SCREENS: Record<string, ComponentType<any>> = {
   a_cash: A("AdminCash"),
   a_audit: A("AdminAudit"),
   a_settings: A("AdminSettings"),
+  a_services: A("AdminServices"),
 };
 
 export const TAB_ROOTS: Record<Mode, { name: string; label: DictKey; icon: string }[]> = {

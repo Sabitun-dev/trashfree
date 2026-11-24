@@ -35,7 +35,13 @@ async function courierText(o: OrderFull, lang: Lang) {
 export async function notifyCouriersNewOrder(o: OrderFull, round = "0") {
   try {
     const couriers = await db().user.findMany({
-      where: { courierCities: { some: { cityId: o.cityId } }, role: { in: ["courier", "admin", "owner"] }, blocked: false, deletedAt: null },
+      where: {
+        courierCities: { some: { cityId: o.cityId } },
+        // Couriers only if they handle trash pickup; admins with cities always.
+        OR: [{ role: "courier", courierServices: { some: { service: "trash" } } }, { role: { in: ["admin", "owner"] } }],
+        blocked: false,
+        deletedAt: null,
+      },
       select: { id: true, language: true },
     });
     const inputs = [];

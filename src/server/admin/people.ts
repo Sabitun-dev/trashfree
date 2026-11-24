@@ -1,6 +1,7 @@
 // People: roles, courier cities, blocking, invites, manual subscriptions, and privacy erasure.
 import { getStore } from "@netlify/blobs";
 import { randomBytes } from "node:crypto";
+import type { ServiceCode } from "../../domain/services";
 import type { Role } from "../../domain/types";
 import { audit } from "../audit";
 import { appLink } from "../bot/telegram";
@@ -38,7 +39,19 @@ export async function setRole(actor: AuthUser, userId: number, role: Role, cityI
       await tx.courierCity.deleteMany({ where: { userId } });
       if (cityIds.length) await tx.courierCity.createMany({ data: cityIds.map((cityId) => ({ userId, cityId })) });
     }
+    // A new courier handles trash pickup by default, as couriers always did.
+    if (role === "courier" && !(await tx.courierService.count({ where: { userId } }))) await tx.courierService.create({ data: { userId, service: "trash" } });
     await audit({ actorId: actor.id, action: "user.role", entity: "user", entityId: userId, before: { role: u.role, cityIds: u.courierCities.map((c) => c.cityId) }, after: { role, cityIds } }, tx);
+  });
+}
+
+/** Which services a courier may handle (trash, carpet, curtain). Audit-logged. */
+export async function setCourierServices(actor: AuthUser, userId: number, services: ServiceCode[]) {
+  const before = await db().courierService.findMany({ where: { userId } });
+  await db().$transaction(async (tx) => {
+    await tx.courierService.deleteMany({ where: { userId } });
+    if (services.length) await tx.courierService.createMany({ data: services.map((service) => ({ userId, service })) });
+    await audit({ actorId: actor.id, action: "user.services", entity: "user", entityId: userId, before: before.map((b) => b.service), after: services }, tx);
   });
 }
 
@@ -51,11 +64,11 @@ export async function setBlocked(actor: AuthUser, userId: number, blocked: boole
   await audit({ actorId: actor.id, action: blocked ? "user.block" : "user.unblock", entity: "user", entityId: userId, before: { blocked: u.blocked }, after: { blocked }, reason });
 }
 
-export async function createInvite(actor: AuthUser, cityIds: number[]) {
-  if (!cityIds.length) throw bad("invalid");
+export async function createInvite(actor: AuthUser, cityIds: number[], services: ServiceCode[] = ["trash"]) {
+  if (!cityIds.length || !services.length) throw bad("invalid");
   const token = randomBytes(12).toString("base64url").replace(/_/g, "-");
-  await db().invite.create({ data: { token, cityIds, createdById: actor.id, expiresAt: new Date(Date.now() + 7 * 86_400_000) } });
-  await audit({ actorId: actor.id, action: "courier.invite_created", entity: "invite", entityId: token.slice(0, 6), after: { cityIds } });
+  await db().invite.create({ data: { token, cityIds, services, createdById: actor.id, expiresAt: new Date(Date.now() + 7 * 86_400_000) } });
+  await audit({ actorId: actor.id, action: "courier.invite_created", entity: "invite", entityId: token.slice(0, 6), after: { cityIds, services } });
   return { token, link: await appLink({ name: "invite", token }) };
 }
 

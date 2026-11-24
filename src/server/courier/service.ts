@@ -3,7 +3,8 @@ import { isAdmin } from "../../domain/permissions";
 import { tashkentDate, tashkentInstant } from "../../domain/time";
 import { audit } from "../audit";
 import { db } from "../db";
-import { bad, conflict, notFound } from "../errors";
+import { bad, conflict, forbidden, notFound } from "../errors";
+import { courierHandles } from "../../domain/services";
 import { onOrderAccepted, onOrderCompleted, onOrderOnTheWay, onOrderReleased } from "../notify/events";
 import { loadOrder } from "../orders/service";
 import type { AuthUser } from "../users";
@@ -33,6 +34,7 @@ export const prismaCourierStore: CourierStore = {
 const cityScope = (u: AuthUser) => (isAdmin(u.role) && u.cityIds.length === 0 ? null : u.cityIds);
 
 export async function courierAccept(user: AuthUser, orderId: string) {
+  if (!courierHandles(user.role, user.services, "trash")) throw forbidden("service_not_allowed");
   const res = await acceptOrder(prismaCourierStore, orderId, { id: user.id, cityIds: cityScope(user) });
   if (!res.ok) {
     const o = await db().order.findUnique({ where: { id: orderId }, select: { id: true } });

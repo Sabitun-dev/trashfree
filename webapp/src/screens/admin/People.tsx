@@ -92,10 +92,11 @@ function InviteSheet({ open, onClose }: { open: boolean; onClose: () => void }) 
   const s = useSession();
   const toast = useToast();
   const [cities, setCities] = useState<number[]>([]);
+  const [services, setServices] = useState<SvcCode[]>(["trash"]);
   const [link, setLink] = useState<string | null>(null);
   async function create() {
     try {
-      const r = await api.post<{ link: string }>("/admin/invites", { cityIds: cities });
+      const r = await api.post<{ link: string }>("/admin/invites", { cityIds: cities, services });
       setLink(r.link);
     } catch (e) {
       toast(errorText(t, e instanceof ApiError ? e.code : undefined), "error");
@@ -111,6 +112,8 @@ function InviteSheet({ open, onClose }: { open: boolean; onClose: () => void }) 
           </Chip>
         ))}
       </div>
+      <p className="mb-2 mt-4 text-hint">{t("a_services")}</p>
+      <ServiceChips value={services} onChange={setServices} />
       {link ? (
         <Card className="mt-4 bg-accent-soft">
           <p className="break-all font-mono text-[14px]">{link}</p>
@@ -121,13 +124,14 @@ function InviteSheet({ open, onClose }: { open: boolean; onClose: () => void }) 
           </div>
         </Card>
       ) : (
-        <Button block className="mt-4" disabled={!cities.length} onClick={create}>{t("a_invite_create")}</Button>
+        <Button block className="mt-4" disabled={!cities.length || !services.length} onClick={create}>{t("a_invite_create")}</Button>
       )}
     </BottomSheet>
   );
 }
 
 interface PersonDetail extends PersonRow {
+  services: SvcCode[];
   language: string;
   blockedReason: string | null;
   botBlocked: boolean;
@@ -145,6 +149,7 @@ export function AdminPerson({ id }: { id: number }) {
   const q = useQuery<Omit<PersonDetail, "orders"> & { orders: { id: string; number: number; status: OrderStatus; priceTotal: number; createdAt: string }[] }>(`admin:person:${id}`, () => api.get(`/admin/people/${id}`));
   const [sheet, setSheet] = useState<"courier" | "sub" | null>(null);
   const [cities, setCities] = useState<number[]>([]);
+  const [services, setServices] = useState<SvcCode[]>([]);
   const [planId, setPlanId] = useState<number | null>(null);
   const [note, setNote] = useState("");
   const p = q.data;
@@ -172,6 +177,7 @@ export function AdminPerson({ id }: { id: number }) {
           {t("a_role")}: <b>{t(`mode_${p.role === "owner" ? "admin" : p.role}`)}{p.role === "owner" ? " ★" : ""}</b>
         </p>
         {p.cityIds.length > 0 && <p className="text-[15px] text-hint">{p.cityIds.map((c) => s.catalog.cities.find((x) => x.id === c)).filter(Boolean).map((c) => t.name(c!)).join(", ")}</p>}
+        {p.role === "courier" && p.services.length > 0 && <p className="text-[15px] text-hint">{p.services.map((x) => t(SVC_LABEL[x])).join(", ")}</p>}
         {p.blocked && <p className="mt-1 font-semibold text-danger">{t("a_blocked")}{p.blockedReason ? `: ${p.blockedReason}` : ""}</p>}
         {p.completedAsCourier > 0 && <p className="text-[15px] text-hint">🚚 {p.completedAsCourier} {t("a_pickups")}</p>}
       </Card>
@@ -179,7 +185,7 @@ export function AdminPerson({ id }: { id: number }) {
       {p.role !== "owner" && (
         <Section>
           <div className="grid grid-cols-2 gap-2">
-            <Button variant="secondary" icon="truck" onClick={() => { setCities(p.cityIds); setSheet("courier"); }}>{p.role === "courier" ? t("a_cities") : t("a_make_courier")}</Button>
+            <Button variant="secondary" icon="truck" onClick={() => { setCities(p.cityIds); setServices(p.services.length ? p.services : ["trash"]); setSheet("courier"); }}>{p.role === "courier" ? t("a_cities") : t("a_make_courier")}</Button>
             {p.role !== "customer" && (p.role !== "admin" || isOwner) && (
               <Button variant="outline" onClick={() => act(() => api.post(`/admin/people/${id}/role`, { role: "customer", cityIds: [] }))}>{t("a_make_customer")}</Button>
             )}
@@ -229,7 +235,8 @@ export function AdminPerson({ id }: { id: number }) {
         )}
       </Section>
 
-      <BottomSheet open={sheet === "courier"} onClose={() => setSheet(null)} title={t("a_cities")}>
+      <BottomSheet open={sheet === "courier"} onClose={() => setSheet(null)} title={t("mode_courier")}>
+        <p className="mb-2 text-hint">{t("a_cities")}</p>
         <div className="flex flex-wrap gap-2">
           {s.catalog.cities.map((c) => (
             <Chip key={c.id} selected={cities.includes(c.id)} onClick={() => setCities((x) => (x.includes(c.id) ? x.filter((y) => y !== c.id) : [...x, c.id]))}>
@@ -237,7 +244,19 @@ export function AdminPerson({ id }: { id: number }) {
             </Chip>
           ))}
         </div>
-        <Button block className="mt-4" disabled={!cities.length} onClick={() => act(() => api.post(`/admin/people/${id}/role`, { role: p.role === "admin" ? "admin" : "courier", cityIds: cities }))}>
+        <p className="mb-2 mt-4 text-hint">{t("a_services")}</p>
+        <ServiceChips value={services} onChange={setServices} />
+        <Button
+          block
+          className="mt-4"
+          disabled={!cities.length || !services.length}
+          onClick={() =>
+            act(async () => {
+              await api.post(`/admin/people/${id}/role`, { role: p.role === "admin" ? "admin" : "courier", cityIds: cities });
+              await api.post(`/admin/people/${id}/services`, { services });
+            })
+          }
+        >
           {t("save")}
         </Button>
       </BottomSheet>
@@ -256,5 +275,22 @@ export function AdminPerson({ id }: { id: number }) {
         </Button>
       </BottomSheet>
     </Page>
+  );
+}
+
+type SvcCode = "trash" | "carpet" | "curtain";
+const SVC_LABEL = { trash: "svc_trash", carpet: "svc_carpet", curtain: "svc_curtain" } as const;
+
+/** Which services a courier handles. */
+function ServiceChips({ value, onChange }: { value: SvcCode[]; onChange: (v: SvcCode[]) => void }) {
+  const t = useT();
+  return (
+    <div className="flex flex-wrap gap-2">
+      {(["trash", "carpet", "curtain"] as const).map((c) => (
+        <Chip key={c} selected={value.includes(c)} onClick={() => onChange(value.includes(c) ? value.filter((x) => x !== c) : [...value, c])}>
+          {t(SVC_LABEL[c])}
+        </Chip>
+      ))}
+    </div>
   );
 }

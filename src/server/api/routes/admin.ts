@@ -6,12 +6,14 @@ import { audienceCount, broadcastSchema, createBroadcast, previewBroadcast } fro
 import { savePrices, updateSettings, upsertEntity, type Entity } from "../../admin/catalog";
 import { dashboard } from "../../admin/dashboard";
 import { confirmHandover, exportCsv, handoverHistory, listOrders, orderFilterSchema, outstandingCash, reassign, setRefundNote } from "../../admin/orders";
-import { createInvite, erasePersonalData, grantSubscription, searchPeople, setBlocked, setRole } from "../../admin/people";
+import { createInvite, erasePersonalData, grantSubscription, searchPeople, setBlocked, setCourierServices, setRole } from "../../admin/people";
+import { SERVICE_CODES } from "../../../domain/services";
+import { loadServices, updateService } from "../../services";
 import { tg } from "../../bot/telegram";
 import { bt } from "../../bot/texts";
 import { loadCatalog } from "../../catalog";
 import { db } from "../../db";
-import { notFound } from "../../errors";
+import { bad, notFound } from "../../errors";
 import { cancelByAdmin, loadOrder } from "../../orders/service";
 import { serializeOrder } from "../../orders/serialize";
 import { enforce } from "../../ratelimit";
@@ -84,7 +86,7 @@ adminRoutes.get("/admin/people/deletion-requests", async (c) => {
 
 adminRoutes.get("/admin/people/:id", async (c) => {
   const id = Number(c.req.param("id"));
-  const u = await db().user.findUnique({ where: { id }, include: { courierCities: true } });
+  const u = await db().user.findUnique({ where: { id }, include: { courierCities: true, courierServices: true } });
   if (!u) throw notFound();
   const [orders, subs, couriered] = await Promise.all([
     db().order.findMany({ where: { customerId: id }, orderBy: { createdAt: "desc" }, take: 10, select: { id: true, number: true, status: true, priceTotal: true, createdAt: true } }),
@@ -102,6 +104,7 @@ adminRoutes.get("/admin/people/:id", async (c) => {
     blockedReason: u.blockedReason,
     botBlocked: u.botBlocked,
     cityIds: u.courierCities.map((x) => x.cityId),
+    services: u.courierServices.map((x) => x.service),
     deletionRequested: !!u.deletionRequestedAt,
     createdAt: u.createdAt,
     orders,
@@ -139,8 +142,33 @@ adminRoutes.post("/admin/people/:id/erase", async (c) => {
 });
 
 adminRoutes.post("/admin/invites", async (c) => {
-  const b = await body(c, z.object({ cityIds: z.array(z.number().int()).min(1).max(50) }));
-  return json(c, await createInvite(c.get("user"), b.cityIds));
+  const b = await body(c, z.object({ cityIds: z.array(z.number().int()).min(1).max(50), services: z.array(z.enum(SERVICE_CODES)).min(1).max(3).default(["trash"]) }));
+  return json(c, await createInvite(c.get("user"), b.cityIds, b.services));
+});
+
+adminRoutes.post("/admin/people/:id/services", async (c) => {
+  const b = await body(c, z.object({ services: z.array(z.enum(SERVICE_CODES)).max(3) }));
+  await setCourierServices(c.get("user"), Number(c.req.param("id")), [...new Set(b.services)]);
+  return json(c, { ok: true });
+});
+
+// ---- Services (on/off switches) ----
+adminRoutes.get("/admin/services", async (c) => json(c, await loadServices(true)));
+
+adminRoutes.post("/admin/services/:code", async (c) => {
+  const code = z.enum(SERVICE_CODES).parse(c.req.param("code"));
+  const b = await body(
+    c,
+    z.object({
+      enabled: z.boolean().optional(),
+      showWhenOff: z.boolean().optional(),
+      offMessage: z.string().trim().max(300).nullable().optional(),
+      offUntil: z.string().datetime({ offset: true }).nullable().optional(),
+    }),
+  );
+  const offUntil = b.offUntil === undefined ? undefined : b.offUntil ? new Date(b.offUntil) : null;
+  if (offUntil && offUntil.getTime() <= Date.now()) throw bad("date_invalid");
+  return json(c, await updateService(c.get("user"), code, { ...b, offUntil, ...(offUntil ? { enabled: false } : {}) }));
 });
 
 adminRoutes.get("/admin/couriers", async (c) => {
