@@ -71,4 +71,20 @@ describe("database migrations", () => {
       { userId: 4, service: "trash" },
     ]);
   });
+
+  it("carpet and curtain get the starting price settings from the spec", async () => {
+    const r = await db.query<{ service: string; pricePerM2: number; washerSharePerM2: number; minOrder: number; deliveryFee: number; freeDeliveryFrom: number }>(
+      `SELECT service, "pricePerM2", "washerSharePerM2", "minOrder", "deliveryFee", "freeDeliveryFrom" FROM "WashSettings" ORDER BY service`,
+    );
+    expect(r.rows).toEqual([
+      { service: "carpet", pricePerM2: 12000, washerSharePerM2: 8000, minOrder: 60000, deliveryFee: 10000, freeDeliveryFrom: 180000 },
+      { service: "curtain", pricePerM2: 12000, washerSharePerM2: 8000, minOrder: 60000, deliveryFee: 10000, freeDeliveryFrom: 180000 },
+    ]);
+  });
+
+  it("the new washer role can be used", async () => {
+    await db.exec(`INSERT INTO "User" (id, "telegramId", name, role, "updatedAt") VALUES (9, 900, 'Washer', 'washer', now())`);
+    const r = await db.query<{ role: string }>(`SELECT role FROM "User" WHERE id = 9`);
+    expect(r.rows[0].role).toBe("washer");
+  });
 });

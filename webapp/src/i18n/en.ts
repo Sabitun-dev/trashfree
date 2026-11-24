@@ -267,6 +267,7 @@ export const en: Dict = {
   mode_customer: "Customer",
   mode_courier: "Courier",
   mode_admin: "Admin",
+  mode_washer: "Washer",
   bell_title: "Notifications",
   bell_empty: "No messages yet",
   mark_all_read: "Mark all read",

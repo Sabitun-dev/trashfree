@@ -1,6 +1,6 @@
 // Shared string unions. Kept identical to the Prisma enums so the web app can use them without Prisma.
 
-export const ROLES = ["customer", "courier", "admin", "owner"] as const;
+export const ROLES = ["customer", "courier", "admin", "owner", "washer"] as const;
 export type Role = (typeof ROLES)[number];
 
 export const ORDER_STATUSES = [

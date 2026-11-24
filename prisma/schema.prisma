@@ -2,8 +2,8 @@
 // Money is always whole so'm (Int). Payme tiyin conversion happens only at the Payme boundary.
 
 generator client {
-  provider        = "prisma-client-js"
-  binaryTargets   = ["native", "rhel-openssl-3.0.x"]
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
 }
 
 datasource db {
@@ -17,6 +17,7 @@ enum Role {
   courier
   admin
   owner
+  washer
 }
 
 enum OrderStatus {
@@ -80,6 +81,9 @@ model User {
 
   courierCities     CourierCity[]
   courierServices   CourierService[]
+  washOrders        WashOrder[]      @relation("WashCustomer")
+  washCourierOrders WashOrder[]      @relation("WashCourier")
+  washWasherOrders  WashOrder[]      @relation("WashWasher")
   addresses         Address[]
   orders            Order[]          @relation("CustomerOrders")
   courierOrders     Order[]          @relation("CourierOrders")
@@ -160,8 +164,9 @@ model City {
   active    Boolean @default(true)
   sort      Int     @default(0)
 
-  couriers CourierCity[]
-  orders   Order[]
+  couriers   CourierCity[]
+  orders     Order[]
+  washOrders WashOrder[]
 }
 
 model TrashType {
@@ -215,7 +220,8 @@ model TimeSlot {
   priority    Boolean @default(false) // subscribers only (when enabled in settings)
   active      Boolean @default(true)
 
-  orders Order[]
+  orders     Order[]
+  washOrders WashOrder[]
 }
 
 model Order {
@@ -277,47 +283,53 @@ model Order {
 }
 
 model OrderPhoto {
-  id         String    @id @default(cuid())
-  orderId    String?
-  uploaderId Int
-  kind       PhotoKind
-  blobKey    String    @unique
-  mime       String
-  size       Int
-  createdAt  DateTime  @default(now())
-  order      Order?    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  uploader   User      @relation(fields: [uploaderId], references: [id], onDelete: Cascade)
+  id          String     @id @default(cuid())
+  orderId     String?
+  washOrderId String?
+  uploaderId  Int
+  kind        PhotoKind
+  blobKey     String     @unique
+  mime        String
+  size        Int
+  createdAt   DateTime   @default(now())
+  order       Order?     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  washOrder   WashOrder? @relation(fields: [washOrderId], references: [id], onDelete: Cascade)
+  uploader    User       @relation(fields: [uploaderId], references: [id], onDelete: Cascade)
 
   @@index([orderId])
+  @@index([washOrderId])
   @@index([createdAt])
 }
 
 model Payment {
-  id               String        @id @default(cuid())
-  userId           Int
-  orderId          String?
-  subscriptionId   Int?
-  provider         String // telegram_click | telegram_payme | payme | click | manual
-  method           PaymentMethod
-  providerTxId     String?       @unique // prefixed: "payme:<id>", "click:<id>", "tg:<charge id>"
-  amount           Int // so'm
-  status           String        @default("created") // created | pending | paid | cancelled | failed
-  state            Int? // Payme transaction state (1, 2, -1, -2)
-  reason           Int? // Payme cancel reason
-  createTime       BigInt? // Payme ms timestamps
-  performTime      BigInt?
-  cancelTime       BigInt?
-  clickPrepareId   Int?          @unique @default(autoincrement())
-  rawCallback      Json[]        @default([])
-  receiptNo        String?       @unique
-  paidAt           DateTime?
-  createdAt        DateTime      @default(now())
-  updatedAt        DateTime      @updatedAt
-  user             User          @relation(fields: [userId], references: [id])
-  order            Order?        @relation(fields: [orderId], references: [id])
-  subscription     Subscription? @relation(fields: [subscriptionId], references: [id])
+  id             String        @id @default(cuid())
+  userId         Int
+  orderId        String?
+  washOrderId    String?
+  subscriptionId Int?
+  provider       String // telegram_click | telegram_payme | payme | click | manual
+  method         PaymentMethod
+  providerTxId   String?       @unique // prefixed: "payme:<id>", "click:<id>", "tg:<charge id>"
+  amount         Int // so'm
+  status         String        @default("created") // created | pending | paid | cancelled | failed
+  state          Int? // Payme transaction state (1, 2, -1, -2)
+  reason         Int? // Payme cancel reason
+  createTime     BigInt? // Payme ms timestamps
+  performTime    BigInt?
+  cancelTime     BigInt?
+  clickPrepareId Int?          @unique @default(autoincrement())
+  rawCallback    Json[]        @default([])
+  receiptNo      String?       @unique
+  paidAt         DateTime?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  user           User          @relation(fields: [userId], references: [id])
+  order          Order?        @relation(fields: [orderId], references: [id])
+  washOrder      WashOrder?    @relation(fields: [washOrderId], references: [id])
+  subscription   Subscription? @relation(fields: [subscriptionId], references: [id])
 
   @@index([orderId])
+  @@index([washOrderId])
   @@index([subscriptionId])
   @@index([userId, createdAt])
 }
@@ -358,15 +370,16 @@ model Subscription {
 }
 
 model CashHandover {
-  id            Int      @id @default(autoincrement())
+  id            Int         @id @default(autoincrement())
   courierId     Int
   amount        Int
   confirmedById Int
   note          String?
-  createdAt     DateTime @default(now())
-  courier       User     @relation("CourierHandovers", fields: [courierId], references: [id])
-  confirmedBy   User     @relation("AdminHandovers", fields: [confirmedById], references: [id])
+  createdAt     DateTime    @default(now())
+  courier       User        @relation("CourierHandovers", fields: [courierId], references: [id])
+  confirmedBy   User        @relation("AdminHandovers", fields: [confirmedById], references: [id])
   orders        Order[]
+  washOrders    WashOrder[]
 }
 
 model Notification {
@@ -441,15 +454,15 @@ model BroadcastDelivery {
 }
 
 model Invite {
-  id          Int       @id @default(autoincrement())
-  token       String    @unique
+  id          Int           @id @default(autoincrement())
+  token       String        @unique
   cityIds     Int[]
   services    ServiceCode[] @default([trash])
   createdById Int
   usedById    Int?
   usedAt      DateTime?
   expiresAt   DateTime
-  createdAt   DateTime  @default(now())
+  createdAt   DateTime      @default(now())
 }
 
 model AuditLog {
@@ -499,4 +512,158 @@ model RateCounter {
   key     String   @id
   count   Int
   resetAt DateTime
+}
+
+// ---------- Carpet & curtain washing ----------
+// Sizes are whole centimetres; areas are whole tenths of a square metre (100 = 10.0 m²), so no rounding drift.
+
+enum WashStatus {
+  created
+  courier_assigned
+  measured
+  quote_sent
+  client_confirmed
+  picked_up
+  at_washer
+  washed
+  out_for_delivery
+  delivered_paid
+  closed
+  cancelled
+}
+
+/// Price settings per service. Every change is a new row (full history); orders keep the row they were created with.
+model WashSettings {
+  id               Int         @id @default(autoincrement())
+  service          ServiceCode
+  pricePerM2       Int
+  washerSharePerM2 Int
+  minOrder         Int
+  maxOrder         Int
+  maxItems         Int
+  deliveryFee      Int
+  freeDeliveryFrom Int
+  tolerancePct     Float
+  courierPay       Int
+  createdById      Int?
+  createdAt        DateTime    @default(now())
+  orders           WashOrder[]
+
+  @@index([service, createdAt])
+}
+
+model WashOrder {
+  id             String         @id @default(cuid())
+  number         Int            @unique @default(autoincrement())
+  service        ServiceCode
+  customerId     Int
+  cityId         Int
+  address        String
+  lat            Float?
+  lng            Float?
+  notes          String?
+  pickupDate     String
+  slotId         Int
+  status         WashStatus     @default(created)
+  statusAt       DateTime       @default(now())
+  settingsId     Int
+  idempotencyKey String         @unique
+  courierId      Int?
+  washerId       Int?
+  /// Current quote (copied from the latest WashQuote); null until measured.
+  quoteVersion   Int            @default(0)
+  subtotal       Int?
+  total          Int?
+  deliveryFee    Int?
+  washerPayout   Int?
+  courierPay     Int?
+  waiveDelivery  Boolean        @default(false)
+  waiveReason    String?
+  needsApproval  Boolean        @default(false)
+  approvedById   Int?
+  approvedAt     DateTime?
+  onHold         Boolean        @default(false)
+  holdReason     String?
+  paymentMethod  PaymentMethod?
+  paymentStatus  PaymentStatus  @default(pending)
+  cashCollected  Int?
+  cashHandoverId Int?
+  cancelReason   String?
+  cancelledBy    String?
+  alertedStuckAt DateTime?
+  archivedAt     DateTime?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  customer     User            @relation("WashCustomer", fields: [customerId], references: [id])
+  courier      User?           @relation("WashCourier", fields: [courierId], references: [id])
+  washer       User?           @relation("WashWasher", fields: [washerId], references: [id])
+  city         City            @relation(fields: [cityId], references: [id])
+  slot         TimeSlot        @relation(fields: [slotId], references: [id])
+  settings     WashSettings    @relation(fields: [settingsId], references: [id])
+  cashHandover CashHandover?   @relation(fields: [cashHandoverId], references: [id])
+  items        WashItem[]
+  quotes       WashQuote[]
+  statusLog    WashStatusLog[]
+  photos       OrderPhoto[]
+  payments     Payment[]
+
+  @@index([status, cityId])
+  @@index([customerId, createdAt])
+  @@index([courierId, status])
+  @@index([washerId, status])
+  @@index([service, createdAt])
+}
+
+model WashItem {
+  id               Int         @id @default(autoincrement())
+  orderId          String
+  position         Int
+  type             ServiceCode
+  lengthCm         Int
+  widthCm          Int
+  areaTenths       Int
+  /// Re-measured by the washer on receipt.
+  washerLengthCm   Int?
+  washerWidthCm    Int?
+  washerAreaTenths Int?
+  label            String      @unique
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+  order            WashOrder   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@unique([orderId, position])
+}
+
+/// Every quote sent to the client (a correction makes a new version that must be confirmed again).
+model WashQuote {
+  id             Int       @id @default(autoincrement())
+  orderId        String
+  version        Int
+  lines          Json
+  subtotal       Int
+  total          Int
+  deliveryFee    Int
+  washerPayout   Int
+  minimumApplied Boolean
+  status         String    @default("sent") // sent | confirmed | declined | superseded
+  sentAt         DateTime  @default(now())
+  respondedAt    DateTime?
+  order          WashOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@unique([orderId, version])
+}
+
+/// Who changed each status, and when.
+model WashStatusLog {
+  id      Int         @id @default(autoincrement())
+  orderId String
+  from    WashStatus?
+  to      WashStatus
+  actorId Int?
+  note    String?
+  at      DateTime    @default(now())
+  order   WashOrder   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId, at])
 }

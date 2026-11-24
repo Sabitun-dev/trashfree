@@ -278,6 +278,7 @@ export const uz = {
   mode_customer: "Mijoz",
   mode_courier: "Kuryer",
   mode_admin: "Admin",
+  mode_washer: "Yuvuvchi",
   bell_title: "Bildirishnomalar",
   bell_empty: "Hozircha xabar yo'q",
   mark_all_read: "Hammasini o'qildi",

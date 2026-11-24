@@ -35,7 +35,8 @@ export function canTransition(from: OrderStatus, to: OrderStatus, actor: Actor):
 }
 
 export function actorForRole(role: Role): Actor {
-  return role === "owner" || role === "admin" ? "admin" : role;
+  // A washer ordering a trash pickup for themselves acts as a customer.
+  return role === "owner" || role === "admin" ? "admin" : role === "washer" ? "customer" : role;
 }
 
 export const FINAL_STATUSES: OrderStatus[] = ["completed", "cancelled", "expired"];

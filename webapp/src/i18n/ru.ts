@@ -267,6 +267,7 @@ export const ru: Dict = {
   mode_customer: "Клиент",
   mode_courier: "Курьер",
   mode_admin: "Админ",
+  mode_washer: "Мойщик",
   bell_title: "Уведомления",
   bell_empty: "Пока нет сообщений",
   mark_all_read: "Прочитать все",
