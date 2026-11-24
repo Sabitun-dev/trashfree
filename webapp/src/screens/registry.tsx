@@ -12,6 +12,7 @@ import { OrderDetail } from "./customer/OrderDetail";
 import { Orders } from "./customer/Orders";
 import { PaymentsHistory, ReceiptScreen } from "./customer/Payments";
 import { Plans } from "./customer/Plans";
+import { ServicePage } from "./customer/ServicePage";
 
 const courier = () => import("./courier");
 const CourierList = lazy(() => courier().then((m) => ({ default: m.CourierList })));
@@ -43,6 +44,7 @@ export const SCREENS: Record<string, ComponentType<any>> = {
   notifications: Notifications,
   invite: Invite,
   support: Support,
+  service: ServicePage,
   wash_new: WashNew,
   wash_order: WashOrderScreen,
   c_wash: CourierWash,

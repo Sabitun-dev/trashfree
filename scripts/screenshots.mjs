@@ -32,6 +32,8 @@ const SCREENS = [
   ["a-broadcast", "admin", r([["a_more"], ["a_broadcast"]]), "&mode=admin"],
   ["a-cash", "admin", r([["a_more"], ["a_cash"]]), "&mode=admin"],
   ["s-home3", "customer", r([["home"]]), "&curtainoff=1"],
+  ["s-svc-carpet", "customer", r([["home"], ["service", { service: "carpet" }]])],
+  ["s-svc-curtain", "customer", r([["home"], ["service", { service: "curtain" }]])],
   ["s-wash-where", "customer", r([["home"], ["wash_new", { service: "carpet", step: 1 }]])],
   ["s-wash-new", "customer", r([["home"], ["wash_new", { service: "carpet", step: 3 }]])],
   ["s-wash-quote", "customer", r([["home"], ["wash_order", { id: "w1" }]])],

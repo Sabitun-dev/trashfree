@@ -1,7 +1,6 @@
 // The client's main menu: up to three services. The admin switches each one on/off;
 // a service that is off is hidden, or shown as "Hozircha mavjud emas" with the admin's message.
 import { useT } from "../../i18n";
-import { clearDraft } from "../../lib/draft";
 import { useNav } from "../../lib/router";
 import { useSession } from "../../lib/session";
 import { haptic } from "../../lib/tg";
@@ -34,12 +33,8 @@ export function ServiceMenu() {
   function start(s: Svc) {
     if (s.visibility !== "open") return haptic.warn();
     haptic.press();
-    if (s.code === "trash") {
-      clearDraft();
-      nav.push("new_order", { step: 1 });
-    } else {
-      nav.push("wash_new", { service: s.code });
-    }
+    // Each service opens its own short page (what we do, why us, how it works); its button starts the order.
+    nav.push("service", { service: s.code });
   }
 
   return (
@@ -84,9 +79,9 @@ export function ServiceMenu() {
 }
 
 /** One colour family per service (theme tokens, so light and dark both stay readable). */
-const TONE = {
+export const TONE = {
   trash: { card: "border-accent/25 bg-accent-soft/60", icon: "bg-accent text-on-accent", arrow: "bg-accent text-on-accent" },
   carpet: { card: "border-violet/25 bg-violet-soft/60", icon: "bg-violet text-card", arrow: "bg-violet text-card" },
   curtain: { card: "border-info/25 bg-info-soft/60", icon: "bg-info text-card", arrow: "bg-info text-card" },
 } as const;
-const TONE_OFF = { card: "border-line bg-card opacity-80", icon: "bg-mute-soft text-mute", arrow: "" };
+export const TONE_OFF = { card: "border-line bg-card opacity-80", icon: "bg-mute-soft text-mute", arrow: "" };
