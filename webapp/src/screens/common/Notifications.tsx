@@ -63,6 +63,7 @@ export function Notifications() {
     const key = (n.type === "order_placed" ? "n_order_accepted" : `n_${n.type}`) as DictKey;
     if (n.type === "order_placed") return t("order_n", { n: n.payload.n }) + " ✅";
     if (n.type === "sub_expires_today") return t("n_sub_expiring", { days: 0 });
+    if (n.type === "wash_status" && t.has(`ws_${n.payload.status}`)) return t("n_wash_status", { num: n.payload.num, status: t(`ws_${n.payload.status}` as DictKey) });
     return t.has(key) ? t(key, n.payload) : n.type;
   }
 
@@ -74,7 +75,7 @@ export function Notifications() {
       case "courier_order":
         return id && nav.push("c_order", { id });
       case "wash_order":
-        return id && nav.push(s.mode === "courier" ? "c_wash" : "wash_order", { id });
+        return id && nav.push(s.mode === "courier" ? "c_wash" : s.mode === "washer" ? "w_order" : "wash_order", { id });
       case "admin":
         return nav.push("a_dash");
       case "plans":

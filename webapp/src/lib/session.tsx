@@ -5,7 +5,7 @@ import { api } from "./api";
 import { applyTheme } from "./theme";
 import type { Bootstrap, Me } from "./types";
 
-export type Mode = "customer" | "courier" | "admin";
+export type Mode = "customer" | "courier" | "admin" | "washer";
 
 interface Session extends Bootstrap {
   mode: Mode;
@@ -39,6 +39,7 @@ export function availableModes(me: Me): Mode[] {
   const m: Mode[] = [];
   if (isAdmin(me.role)) m.push("admin");
   if (me.role === "courier" || (isAdmin(me.role) && me.cityIds.length > 0)) m.push("courier");
+  if (me.role === "washer") m.push("washer");
   m.push("customer");
   return m;
 }

@@ -111,3 +111,20 @@ export async function alertAdmins(kind: Extract<TextKey, `alert_${string}`>, par
 }
 
 export const fmtArea = formatM2;
+
+const STATUS_KEY: Record<string, TextKey> = {
+  washed: "wash_st_washed",
+  out_for_delivery: "wash_st_out",
+  delivered_paid: "wash_st_delivered",
+};
+
+/** Client updates for the later steps (washed, out for delivery, delivered). */
+export async function notifyWashStatus(o: WashOrderFull, status: "washed" | "out_for_delivery" | "delivered_paid") {
+  const lang = await langOf(o.customerId);
+  await notify({ userId: o.customerId, type: "wash_status", params: { num: num(o), status }, text: bt(lang, STATUS_KEY[status], { num: num(o) }), screen: screen(o), dedupKey: `wst:${o.id}:${status}` });
+}
+
+export async function notifyWasherNewItems(o: WashOrderFull) {
+  if (!o.washerId) return;
+  await notify({ userId: o.washerId, type: "wash_status", params: { num: num(o), status: "at_washer" }, text: bt(await langOf(o.washerId), "wash_washer_new", { num: num(o), count: o.items.length }), screen: screen(o), dedupKey: `wwasher:${o.id}:${o.washerId}` });
+}

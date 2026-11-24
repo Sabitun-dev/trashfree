@@ -24,6 +24,12 @@ import {
   respondToQuote,
   takeWash,
   waiveDelivery,
+  handToWasher,
+  listWashers,
+  markWashed,
+  releaseHold,
+  washerMeasure,
+  washerMeasureSchema,
 } from "../../wash/service";
 import { currentWashSettings, toPricing } from "../../wash/settings";
 import type { Role } from "../../../domain/types";
@@ -133,3 +139,42 @@ adminAction("approve", (u, id) => approveWash(u, id), false);
 adminAction("reopen", (u, id, b) => reopenForCorrection(u, id, b.reason));
 adminAction("admin-cancel", (u, id, b) => cancelWashByAdmin(u, id, b.reason));
 adminAction("waive-delivery", (u, id, b) => waiveDelivery(u, id, b.reason));
+adminAction("release-hold", (u, id, b) => releaseHold(u, id, b.reason));
+
+// ---- Washer ----
+washRoutes.get("/wash/washers", async (c) => {
+  courierOnly(c.get("user").role);
+  return json(c, await listWashers());
+});
+
+courierAction("handover", (u, id, b) => handToWasher(u, id, z.object({ washerId: z.number().int() }).parse(b).washerId));
+
+const washerOnly = (role: Role) => {
+  if (role !== "washer") throw forbidden();
+};
+
+washRoutes.get("/wash/washer", async (c) => {
+  const user = c.get("user");
+  washerOnly(user.role);
+  const { tab } = query(c, z.object({ tab: z.enum(["mine", "done"]) }));
+  const list = await db().washOrder.findMany({
+    where: { washerId: user.id, status: tab === "mine" ? "at_washer" : { in: ["washed", "out_for_delivery", "delivered_paid", "closed"] } },
+    include: washInclude,
+    orderBy: { statusAt: "desc" },
+    take: 100,
+  });
+  return json(c, list.map((o) => serializeWash(o, "washer")));
+});
+
+washRoutes.post("/wash/orders/:id/washer-measure", async (c) => {
+  const user = c.get("user");
+  washerOnly(user.role);
+  const o = await washerMeasure(user, c.req.param("id"), washerMeasureSchema.parse(await c.req.json().catch(() => ({}))).items);
+  return json(c, serializeWash(o, "washer"));
+});
+
+washRoutes.post("/wash/orders/:id/washed", async (c) => {
+  const user = c.get("user");
+  washerOnly(user.role);
+  return json(c, serializeWash(await markWashed(user, c.req.param("id")), "washer"));
+});

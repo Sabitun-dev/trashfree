@@ -114,7 +114,7 @@ adminRoutes.get("/admin/people/:id", async (c) => {
 });
 
 adminRoutes.post("/admin/people/:id/role", async (c) => {
-  const b = await body(c, z.object({ role: z.enum(["customer", "courier", "admin"]), cityIds: z.array(z.number().int()).max(50).optional() }));
+  const b = await body(c, z.object({ role: z.enum(["customer", "courier", "admin", "washer"]), cityIds: z.array(z.number().int()).max(50).optional() }));
   await setRole(c.get("user"), Number(c.req.param("id")), b.role, b.cityIds);
   return json(c, { ok: true });
 });

@@ -58,7 +58,7 @@ meRoutes.post("/me", async (c) => {
       language: z.enum(["uz", "ru", "en"]).optional(),
       name: z.string().trim().min(1).max(80).optional(),
       nameConfirmed: z.boolean().optional(),
-      introSeen: z.enum(["customer", "courier", "admin"]).optional(),
+      introSeen: z.enum(["customer", "courier", "admin", "washer"]).optional(),
       mutedCategories: z.array(z.enum(MUTABLE_CATEGORIES)).optional(),
     }),
   );

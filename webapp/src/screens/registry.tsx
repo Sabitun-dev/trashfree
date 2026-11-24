@@ -23,6 +23,8 @@ const wash = () => import("./wash");
 const WashNew = lazy(() => wash().then((m) => ({ default: m.WashNew })));
 const WashOrderScreen = lazy(() => wash().then((m) => ({ default: m.WashOrderScreen })));
 const CourierWash = lazy(() => wash().then((m) => ({ default: m.CourierWash })));
+const WasherList = lazy(() => wash().then((m) => ({ default: m.WasherList })));
+const WasherOrder = lazy(() => wash().then((m) => ({ default: m.WasherOrder })));
 
 const admin = () => import("./admin");
 const A = (name: keyof Awaited<ReturnType<typeof admin>>) => lazy(() => admin().then((m) => ({ default: m[name] as ComponentType<any> })));
@@ -44,6 +46,8 @@ export const SCREENS: Record<string, ComponentType<any>> = {
   wash_new: WashNew,
   wash_order: WashOrderScreen,
   c_wash: CourierWash,
+  w_list: WasherList,
+  w_order: WasherOrder,
   c_list: CourierList,
   c_order: CourierOrderScreen,
   c_map: CourierMap,
@@ -75,6 +79,10 @@ export const TAB_ROOTS: Record<Mode, { name: string; label: DictKey; icon: strin
     { name: "c_list", label: "tab_orders", icon: "list" },
     { name: "c_map", label: "tab_map", icon: "map" },
     { name: "c_today", label: "tab_today", icon: "cash" },
+    { name: "profile", label: "tab_profile", icon: "user" },
+  ],
+  washer: [
+    { name: "w_list", label: "tab_orders", icon: "list" },
     { name: "profile", label: "tab_profile", icon: "user" },
   ],
   admin: [

@@ -190,6 +190,9 @@ export function AdminPerson({ id }: { id: number }) {
               <Button variant="outline" onClick={() => act(() => api.post(`/admin/people/${id}/role`, { role: "customer", cityIds: [] }))}>{t("a_make_customer")}</Button>
             )}
             {isOwner && p.role !== "admin" && <Button variant="outline" icon="shield" onClick={() => act(() => api.post(`/admin/people/${id}/role`, { role: "admin" }))}>{t("a_make_admin")}</Button>}
+            {p.role !== "washer" && p.role !== "admin" && (
+              <Button variant="outline" icon="sparkle" onClick={() => act(() => api.post(`/admin/people/${id}/role`, { role: "washer", cityIds: [] }))}>{t("a_make_washer")}</Button>
+            )}
             <Button variant="outline" icon="crown" onClick={() => setSheet("sub")}>{t("a_paid_manual")}</Button>
             {(p.role !== "admin" || isOwner) && (
               <Button variant={p.blocked ? "secondary" : "danger"} icon="ban" onClick={() => act(() => api.post(`/admin/people/${id}/block`, { blocked: !p.blocked }))}>

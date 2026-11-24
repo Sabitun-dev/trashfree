@@ -24,7 +24,7 @@ export function WashOrderScreen({ id }: { id: string }) {
   const key = `wash:${id}`;
   const q = useQuery<WashDTO>(key, () => api.get(`/wash/orders/${id}`), { refreshMs: 10_000 });
   const [busy, setBusy] = useState(false);
-  const [adminAction, setAdminAction] = useState<null | "reopen" | "admin-cancel" | "waive-delivery">(null);
+  const [adminAction, setAdminAction] = useState<null | "reopen" | "admin-cancel" | "waive-delivery" | "release-hold">(null);
   const [reason, setReason] = useState("");
   const o = q.data;
   if (q.loading) return <Page><Skeleton className="h-72" /></Page>;
@@ -58,6 +58,17 @@ export function WashOrderScreen({ id }: { id: string }) {
         <WashStatusBadge status={o.status} onHold={o.onHold} />
         <WashTracker status={o.status} />
       </Card>
+
+      {admin && o.onHold && (
+        <Card className="mt-3 border-2 border-danger/40 bg-danger-soft">
+          <p className="flex items-center gap-2 font-semibold text-danger">
+            <Icon name="alert" /> {t("aw_hold")}
+          </p>
+          <Button block className="mt-3" variant="secondary" onClick={() => setAdminAction("release-hold")}>
+            {t("aw_release")}
+          </Button>
+        </Card>
+      )}
 
       {mine && (o.status === "created" || o.status === "courier_assigned" || o.status === "measured") && (
         <Card className="mt-3 flex items-start gap-3 bg-info-soft">
@@ -183,7 +194,7 @@ export function WashOrderScreen({ id }: { id: string }) {
         )}
       </div>
 
-      <BottomSheet open={!!adminAction} onClose={() => setAdminAction(null)} title={adminAction === "reopen" ? t("aw_reopen") : adminAction === "waive-delivery" ? t("aw_waive") : t("a_cancel_order")}>
+      <BottomSheet open={!!adminAction} onClose={() => setAdminAction(null)} title={adminAction === "reopen" ? t("aw_reopen") : adminAction === "waive-delivery" ? t("aw_waive") : adminAction === "release-hold" ? t("aw_release") : t("a_cancel_order")}>
         <textarea className={inputCls + " min-h-[90px]"} placeholder={t("a_reason_ph")} value={reason} onChange={(e) => setReason(e.target.value)} maxLength={500} />
         <Button
           block

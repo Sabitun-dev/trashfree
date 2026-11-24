@@ -14,7 +14,7 @@ import type { WashDTO } from "../../lib/types";
 import { CallButton } from "../../components/CallButton";
 import { PrivatePhoto } from "../../components/Photos";
 import { Icon } from "../../ui/Icon";
-import { Button, Card, cx, ErrorState, inputCls, KeyValue, Section, Skeleton } from "../../ui/kit";
+import { Button, Card, Chip, cx, ErrorState, inputCls, KeyValue, Section, Skeleton } from "../../ui/kit";
 import { Page } from "../../ui/layout";
 import { useToast } from "../../ui/overlays";
 import { m2, svcLabel, WashItemsList, WashStatusBadge } from "./parts";
@@ -190,6 +190,7 @@ export function CourierWash({ id }: { id: string }) {
             <MainButton text={t("wc_pickup")} loading={busy} onClick={() => act("pickup", {}, t("done"))} />
           </>
         )}
+        {o.status === "picked_up" && <HandOver busy={busy} onPick={(washerId) => act("handover", { washerId }, t("done"))} />}
         {o.status === "courier_assigned" && (
           <Button block variant="ghost" onClick={() => act("give-back", {}, t("done"))}>
             {t("c_give_back")}
@@ -197,6 +198,29 @@ export function CourierWash({ id }: { id: string }) {
         )}
       </div>
     </Page>
+  );
+}
+
+/** Picked up → choose the partner washer the items go to. */
+function HandOver({ busy, onPick }: { busy: boolean; onPick: (washerId: number) => void }) {
+  const t = useT();
+  const washers = useQuery<{ id: number; name: string }[]>("washers", () => api.get("/wash/washers"));
+  const [sel, setSel] = useState<number | null>(null);
+  return (
+    <Section title={t("wc_choose_washer")}>
+      {washers.data && !washers.data.length ? (
+        <Card className="text-center text-hint">{t("wc_no_washers")}</Card>
+      ) : (
+        <div className="flex flex-wrap gap-2">
+          {washers.data?.map((w) => (
+            <Chip key={w.id} selected={sel === w.id} onClick={() => setSel(w.id)}>
+              {w.name}
+            </Chip>
+          ))}
+        </div>
+      )}
+      <MainButton text={t("wc_handover")} disabled={!sel} loading={busy} onClick={() => sel && onPick(sel)} />
+    </Section>
   );
 }
 

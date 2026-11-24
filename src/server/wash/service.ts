@@ -6,6 +6,11 @@ import { findServiceCity } from "../../domain/geo";
 import { courierHandles, type ServiceCode } from "../../domain/services";
 import { dateInWindow, slotAvailability } from "../../domain/slots";
 import {
+  areaDiffPct,
+  areaTenths,
+  isMismatch,
+  MAX_SIDE_CM,
+  MIN_SIDE_CM,
   canWashTransition,
   courierCanMeasure,
   quoteWash,
@@ -24,7 +29,7 @@ import { bad, conflict, forbidden, notFound, tooMany } from "../errors";
 import { assertServiceOpen } from "../services";
 import { getSettings } from "../settings";
 import type { AuthUser } from "../users";
-import { alertAdmins, notifyQuoteAnswer, notifyWashAssigned, notifyWashCancelled, notifyWashPicked, notifyWashPlaced, sendQuoteToClient } from "./notify";
+import { alertAdmins, notifyQuoteAnswer, notifyWashAssigned, notifyWashCancelled, notifyWashPicked, notifyWashPlaced, notifyWashStatus, notifyWasherNewItems, sendQuoteToClient } from "./notify";
 import { serializeWash, washInclude, washViewFor, type WashOrderFull } from "./serialize";
 import { currentWashSettings, toPricing } from "./settings";
 
@@ -326,3 +331,88 @@ export async function waiveDelivery(admin: AuthUser, id: string, reason: string)
 }
 
 export { actorOf };
+
+// ---------------- Washer ----------------
+
+/** Courier hands the items to a partner washer. */
+export async function handToWasher(user: AuthUser, id: string, washerId: number) {
+  const washer = await db().user.findFirst({ where: { id: washerId, role: "washer", blocked: false, deletedAt: null } });
+  if (!washer) throw bad("invalid");
+  const ok = await db().$transaction(async (tx) => {
+    const o = await tx.washOrder.findUnique({ where: { id } });
+    if (!o || (o.courierId !== user.id && !(user.role === "admin" || user.role === "owner"))) return false;
+    return transition(tx, id, "picked_up", "at_washer", user.id, { washerId });
+  });
+  if (!ok) throw conflict("bad_status");
+  const full = (await loadWash(id))!;
+  await notifyWasherNewItems(full);
+  return full;
+}
+
+export const washerMeasureSchema = z.object({
+  items: z.array(z.object({ id: z.number().int(), lengthCm: z.number().int(), widthCm: z.number().int() })).min(1).max(50),
+});
+
+/**
+ * The washer re-measures every item on receipt (blind: they never saw the courier's sizes).
+ * If the total area differs by more than the tolerance, the order is put on hold and admins are alerted.
+ */
+export async function washerMeasure(user: AuthUser, id: string, items: { id: number; lengthCm: number; widthCm: number }[]) {
+  const o = await db().washOrder.findUnique({ where: { id }, include: { items: true, settings: true } });
+  if (!o || o.washerId !== user.id) throw notFound();
+  if (o.status !== "at_washer") throw conflict("bad_status");
+  const byId = new Map(items.map((i) => [i.id, i]));
+  if (o.items.some((i) => !byId.has(i.id))) throw bad("no_items");
+  for (const i of items) {
+    if (!Number.isInteger(i.lengthCm) || !Number.isInteger(i.widthCm) || i.lengthCm < MIN_SIDE_CM || i.widthCm < MIN_SIDE_CM || i.lengthCm > MAX_SIDE_CM || i.widthCm > MAX_SIDE_CM) throw bad("bad_size");
+  }
+  const courierArea = o.items.reduce((s, i) => s + i.areaTenths, 0);
+  const washerArea = o.items.reduce((s, i) => s + areaTenths(byId.get(i.id)!.lengthCm, byId.get(i.id)!.widthCm), 0);
+  const mismatch = isMismatch(courierArea, washerArea, o.settings.tolerancePct);
+  await db().$transaction(async (tx) => {
+    for (const i of o.items) {
+      const w = byId.get(i.id)!;
+      await tx.washItem.update({ where: { id: i.id }, data: { washerLengthCm: w.lengthCm, washerWidthCm: w.widthCm, washerAreaTenths: areaTenths(w.lengthCm, w.widthCm) } });
+    }
+    await tx.washOrder.update({ where: { id }, data: mismatch ? { onHold: true, holdReason: "measurement_mismatch" } : {} });
+    await tx.washStatusLog.create({ data: { orderId: id, from: "at_washer", to: "at_washer", actorId: user.id, note: mismatch ? `washer measured: mismatch ${areaDiffPct(courierArea, washerArea).toFixed(1)}%` : "washer measured" } });
+  });
+  if (mismatch) {
+    const full = (await loadWash(id))!;
+    await alertAdmins(
+      "alert_mismatch",
+      { num: washNumber(o.service as WashService, o.number), pct: areaDiffPct(courierArea, washerArea).toFixed(1), courierArea: (courierArea / 10).toFixed(1), washerArea: (washerArea / 10).toFixed(1) },
+      full,
+      `mismatch:${id}`,
+    );
+    return full;
+  }
+  return (await loadWash(id))!;
+}
+
+export async function markWashed(user: AuthUser, id: string) {
+  const ok = await db().$transaction(async (tx) => {
+    const o = await tx.washOrder.findUnique({ where: { id }, include: { items: true } });
+    if (!o || o.washerId !== user.id || o.onHold) return false;
+    if (o.items.some((i) => i.washerAreaTenths == null)) return false; // re-measure first
+    return transition(tx, id, "at_washer", "washed", user.id);
+  });
+  if (!ok) throw conflict("bad_status");
+  const full = (await loadWash(id))!;
+  await notifyWashStatus(full, "washed");
+  return full;
+}
+
+/** Admin checked a measurement mismatch and lets the order continue. */
+export async function releaseHold(admin: AuthUser, id: string, reason: string) {
+  const o = await db().washOrder.findUnique({ where: { id } });
+  if (!o || !o.onHold) throw conflict("bad_status");
+  await db().washOrder.update({ where: { id }, data: { onHold: false, holdReason: null } });
+  await db().washStatusLog.create({ data: { orderId: id, from: o.status, to: o.status, actorId: admin.id, note: `hold released: ${reason}` } });
+  await audit({ actorId: admin.id, action: "wash.release_hold", entity: "washOrder", entityId: id, reason });
+  return (await loadWash(id))!;
+}
+
+export async function listWashers() {
+  return db().user.findMany({ where: { role: "washer", blocked: false, deletedAt: null }, select: { id: true, name: true }, orderBy: { name: "asc" } });
+}

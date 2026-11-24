@@ -18,6 +18,11 @@ const SLIDES: Record<Mode, { icon: string; t: DictKey; d: DictKey }[]> = {
     { icon: "check", t: "intro_k2_t", d: "intro_k2_d" },
     { icon: "cash", t: "intro_k3_t", d: "intro_k3_d" },
   ],
+  washer: [
+    { icon: "box", t: "intro_w1_t", d: "intro_w1_d" },
+    { icon: "edit", t: "intro_w2_t", d: "intro_w2_d" },
+    { icon: "sparkle", t: "intro_w3_t", d: "intro_w3_d" },
+  ],
   admin: [
     { icon: "chart", t: "intro_a1_t", d: "intro_a1_d" },
     { icon: "settings", t: "intro_a2_t", d: "intro_a2_d" },

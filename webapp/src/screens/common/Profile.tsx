@@ -88,7 +88,7 @@ export function Profile() {
                 className="flex-1"
                 onClick={() => {
                   s.setMode(m);
-                  nav.reset(m === "courier" ? "c_list" : m === "admin" ? "a_dash" : "home");
+                  nav.reset(m === "courier" ? "c_list" : m === "admin" ? "a_dash" : m === "washer" ? "w_list" : "home");
                 }}
               >
                 {t(`mode_${m}`)}
